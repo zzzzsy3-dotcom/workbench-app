@@ -234,6 +234,7 @@
   .step-name { flex: 1; font-size: 14px; line-height: 1.35; word-break: break-word; }
   .step.done .step-name { color: var(--ink-3); text-decoration: line-through; }
   .step-skip { font-size: 10.5px; font-weight: 700; padding: 2px 6px; border-radius: 5px; background: var(--line-2); color: var(--ink-3); white-space: nowrap; }
+  .step-due { font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 5px; background: #DBEAFE; color: #1D4ED8; white-space: nowrap; font-family: ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; }
   .step-del { width: 24px; height: 24px; border-radius: 6px; display: grid; place-items: center; color: var(--ink-3); opacity: 0; transition: opacity .1s; }
   .step:hover .step-del { opacity: 1; }
   .step-del:hover { background: var(--p0-bg); color: var(--p0); }
@@ -542,8 +543,9 @@
         <input type="date" id="fDue">
       </div>
       <div class="field">
-        <label>步骤（每行一个，可留空；步骤可不按顺序完成）</label>
-        <textarea id="fSteps" placeholder="拍产品图&#10;修图&#10;写文案（可跳过）&#10;上传到WP&#10;SEO检查（可跳过）"></textarea>
+        <label>步骤（每个可单独设日期 / 可跳过）</label>
+        <div id="fStepsList" style="display:flex;flex-direction:column;gap:8px"></div>
+        <button type="button" class="btn" id="fStepAdd" style="margin-top:8px;align-self:flex-start;padding:6px 12px;font-size:13px">+ 添加步骤</button>
       </div>
       <div class="field">
         <label>备注（可选）</label>
@@ -721,6 +723,14 @@
       <label>移到</label>
       <select class="bb-select" id="bbWebsite"></select>
       <button class="bb-mini primary" id="bbMove">移动</button>
+    </div>
+    <div class="bb-sep"></div>
+    <div class="bb-group">
+      <label>步骤排期</label>
+      <input type="date" id="bbStepStart" title="起始日">
+      <input type="number" id="bbStepGap" value="1" min="0" max="30" style="width:60px" title="间隔天数">
+      <label>天</label>
+      <button class="bb-mini" id="bbStepApply">应用</button>
     </div>
     <div class="bb-sep"></div>
     <button class="bb-mini danger" id="bbDelete">删除选中</button>
@@ -1131,6 +1141,7 @@ function renderTaskCard(x) {
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
       </div>
       <span class="step-name">${escapeHtml(s.name)}</span>
+      ${s.due?`<span class="step-due" title="该步骤截止日">${formatShort(s.due)}</span>`:''}
       ${s.skippable?'<span class="step-skip">可跳过</span>':''}
       <button class="step-del" data-del-step="${s.id}" data-del-task="${x.id}" title="删除步骤">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
@@ -1230,6 +1241,22 @@ function batchSetDate(dateStr) {
   save(K_TASKS, tasks);
   clearSelection(); renderAll();
   toast('已设日期 '+dateStr+'（'+c+' 项）', 'ok');
+}
+/* 批量按步骤排期：每个选中任务，从起始日开始按间隔天数给每个步骤分配 due
+   示例：起始日 8/5，间隔 1 天，3 步任务 → 步骤1=8/5，步骤2=8/6，步骤3=8/7
+   task.due 不变（用户可单独设），只改 step.due */
+function batchStepSchedule(startStr, gapDays) {
+  if(!selectedTasks.size || !startStr) { toast('请填起始日和间隔','err'); return; }
+  let c = 0;
+  tasks.forEach(x => {
+    if(!selectedTasks.has(x.id)) return;
+    if(!x.steps || !x.steps.length) return;
+    x.steps.forEach((s, i) => { s.due = shiftDate(startStr, i * gapDays); });
+    c++;
+  });
+  save(K_TASKS, tasks);
+  clearSelection(); renderAll();
+  toast('已排期 '+c+' 项任务的步骤（起始 '+startStr+'，间隔 '+gapDays+' 天）','ok');
 }
 function batchMoveWebsite(wid) {
   if(!selectedTasks.size || !wid) return;
@@ -1521,6 +1548,7 @@ function bindTabs(){
   on($('#bbShiftApply'), 'click', () => { const v = parseInt($('#bbShift').value, 10); if(!isNaN(v)) batchShiftDue(v); });
   on($('#bbDateApply'), 'click', () => batchSetDate($('#bbDate').value));
   on($('#bbMove'), 'click', () => batchMoveWebsite($('#bbWebsite').value));
+  on($('#bbStepApply'), 'click', () => { const s = $('#bbStepStart').value; const g = parseInt($('#bbStepGap').value,10)||0; batchStepSchedule(s, g); });
   on($('#bbDelete'), 'click', batchDeleteSelected);
   onAll($$('#batchBar [data-bp]'), 'click', b => batchSetPriority(b.dataset.bp));
 
@@ -1595,25 +1623,77 @@ function openTaskModal(id){
     $('#fTitle').value = t.title;
     $$('#fPriority .seg-opt').forEach(b=>b.classList.toggle('active', b.dataset.p===t.priority));
     $('#fDue').value = t.due || '';
-    $('#fSteps').value = t.steps.map(s => s.name + (s.skippable?'（可跳过）':'')).join('\n');
     $('#fNote').value = t.note || '';
+    renderFormSteps(t.steps);
   } else {
     $('#taskModalTitle').textContent = '新建工作内容';
-    $('#fTitle').value=''; $('#fDue').value=''; $('#fSteps').value=''; $('#fNote').value='';
+    $('#fTitle').value=''; $('#fDue').value=''; $('#fNote').value='';
     $$('#fPriority .seg-opt').forEach(b=>b.classList.toggle('active', b.dataset.p==='P1'));
     if(activeWs) $('#fWebsite').value = activeWs;
+    renderFormSteps([]);
   }
   $('#taskModal').classList.add('show');
 }
+
+/* 渲染任务编辑弹窗里的步骤列表
+   入参：steps 数组，元素 {name, due, skippable}；空数组给一行空白 */
+function renderFormSteps(steps){
+  const list = $('#fStepsList');
+  const rows = steps.length ? steps : [{name:'', due:'', skippable:false}];
+  list.innerHTML = rows.map((s,i) => `
+    <div class="step-row" style="display:flex;gap:6px;align-items:center">
+      <input class="sr-name" type="text" placeholder="步骤 ${i+1}" value="${escapeHtml(s.name||'')}" style="flex:1;height:38px;padding:0 10px;border:1px solid var(--line);border-radius:8px;font-size:14px">
+      <input class="sr-due" type="date" value="${s.due||''}" style="width:140px;height:38px;padding:0 8px;border:1px solid var(--line);border-radius:8px;font-size:13px" title="该步骤的截止日期">
+      <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--ink-2);white-space:nowrap;cursor:pointer">
+        <input type="checkbox" class="sr-skip" ${s.skippable?'checked':''}> 可跳过
+      </label>
+      <button type="button" class="sr-del" style="width:30px;height:30px;border-radius:8px;border:none;background:var(--line-2);cursor:pointer;color:var(--ink-3);font-size:14px">✕</button>
+    </div>
+  `).join('');
+}
+// 添加步骤
+on($('#fStepAdd'), 'click', () => {
+  const list = $('#fStepsList');
+  const i = list.children.length;
+  const div = document.createElement('div');
+  div.className = 'step-row';
+  div.style.cssText = 'display:flex;gap:6px;align-items:center';
+  div.innerHTML = `
+    <input class="sr-name" type="text" placeholder="步骤 ${i+1}" style="flex:1;height:38px;padding:0 10px;border:1px solid var(--line);border-radius:8px;font-size:14px">
+    <input class="sr-due" type="date" style="width:140px;height:38px;padding:0 8px;border:1px solid var(--line);border-radius:8px;font-size:13px" title="该步骤的截止日期">
+    <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--ink-2);white-space:nowrap;cursor:pointer">
+      <input type="checkbox" class="sr-skip"> 可跳过
+    </label>
+    <button type="button" class="sr-del" style="width:30px;height:30px;border-radius:8px;border:none;background:var(--line-2);cursor:pointer;color:var(--ink-3);font-size:14px">✕</button>
+  `;
+  list.appendChild(div);
+});
+// 删除步骤（事件委托）
+on($('#fStepsList'), 'click', e => {
+  if(e.target.closest('.sr-del')){
+    const row = e.target.closest('.step-row');
+    if($('#fStepsList').children.length > 1) row.remove();
+    else { row.querySelector('.sr-name').value=''; row.querySelector('.sr-due').value=''; row.querySelector('.sr-skip').checked=false; }
+  }
+});
+// 读取表单步骤数据
+function readFormSteps(){
+  return [...$('#fStepsList').children].map(row => ({
+    id: uid(),
+    name: row.querySelector('.sr-name').value.trim(),
+    due: row.querySelector('.sr-due').value || '',
+    skippable: row.querySelector('.sr-skip').checked
+  })).filter(s => s.name);
+}
 // 模板填充
-$('#fTemplate').addEventListener('change', e => {
+on($('#fTemplate'), 'change', e => {
   const id = e.target.value;
   if(!id) return;
   const tp = templates.find(x=>x.id===id);
   if(!tp) return;
   $('#fTitle').value = tp.title;
   $$('#fPriority .seg-opt').forEach(b=>b.classList.toggle('active', b.dataset.p===tp.priority));
-  $('#fSteps').value = tp.steps.map(s => s.name + (s.skippable?'（可跳过）':'')).join('\n');
+  renderFormSteps(tp.steps);
   toast('已填充模板「'+tp.name+'」，可再编辑','ok');
 });
 function saveTask(){
@@ -1624,13 +1704,8 @@ function saveTask(){
   const priority = $('#fPriority .seg-opt.active').dataset.p;
   const due = $('#fDue').value || '';
   const note = $('#fNote').value.trim();
-  // 解析步骤：每行一个，末尾"（可跳过）"或"(可跳过)"标记
-  const steps = $('#fSteps').value.split('\n').map(s=>s.trim()).filter(Boolean).map(line => {
-    let skippable = false; let name = line;
-    const m = line.match(/[（(]\s*可跳过\s*[）)]\s*$/);
-    if(m){ skippable = true; name = line.slice(0, m.index).trim(); }
-    return { id:uid(), name, done:false, skippable };
-  });
+  const steps = readFormSteps();
+  if(!steps.length){ toast('至少需要一个步骤','err'); return; }
   if(editingTaskId){
     const t = tasks.find(x=>x.id===editingTaskId);
     // 保留已存在步骤的done状态（按名称匹配）
@@ -1640,7 +1715,6 @@ function saveTask(){
       if(old) return { ...s, id:old.id, done:old.done };
       return s;
     });
-    // 已删除的步骤不再保留
     t.websiteId = websiteId; t.title=title; t.priority=priority; t.due=due; t.note=note; t.steps=newSteps;
     toast('已更新','ok');
   } else {
