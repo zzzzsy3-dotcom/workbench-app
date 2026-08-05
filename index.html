@@ -226,17 +226,17 @@
   }
   .batch-bar.show { display: block; }
   .batch-bar .bb-row { display: flex; align-items: center; gap: 8px; }
-  .batch-bar .bb-ops { display: flex; flex-direction: column; gap: 6px; padding-top: 8px; margin-top: 8px; border-top: 1px dashed var(--line); }
-  .batch-bar .bb-ops[hidden] { display: none; }
-  .bb-op { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 6px 10px; border-radius: 8px; background: var(--line-2); }
-  .bb-op.danger { background: #FEE2E2; }
-  .bb-op-title { font-size: 12px; font-weight: 700; color: var(--ink-2); white-space: nowrap; min-width: 70px; }
-  .bb-op.danger .bb-op-title { color: var(--p0); }
-  .bb-op-body { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-  .bb-op-body label { font-size: 12px; color: var(--ink-3); white-space: nowrap; }
-  .bb-op-body input[type=number] { width: 60px; height: 30px; border: 1px solid var(--line); border-radius: 7px; padding: 0 8px; font-size: 15px; background:#fff; }
-  .bb-op-body input[type=date] { height: 30px; border: 1px solid var(--line); border-radius: 7px; padding: 0 6px; font-size: 14px; background:#fff; }
-  .bb-op-body select { height: 30px; border: 1px solid var(--line); border-radius: 7px; padding: 0 6px; font-size: 13px; background:#fff; max-width: 160px; }
+  .batch-bar .bb-actions { display: flex; gap: 6px; flex-wrap: wrap; padding-top: 8px; margin-top: 4px; border-top: 0.5px dashed var(--line); }
+  .bb-act { font-size: 13px; font-weight: 500; padding: 6px 14px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--ink-2); cursor: pointer; white-space: nowrap; transition: all .12s; }
+  .bb-act:hover { border-color: var(--brand); color: var(--brand); }
+  .bb-act.active { background: var(--brand-bg); border-color: var(--brand); color: var(--brand); font-weight: 600; }
+  .bb-panel { background: var(--brand-bg); border: 1px solid #B5D4F4; border-radius: 8px; padding: 10px; margin-top: 6px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .bb-panel[hidden] { display: none; }
+  .bb-panel label { font-size: 12px; color: var(--ink-2); white-space: nowrap; }
+  .bb-panel input[type=number] { width: 56px; height: 32px; border: 1px solid var(--line); border-radius: 7px; padding: 0 8px; font-size: 15px; background: #fff; }
+  .bb-panel input[type=date] { height: 32px; border: 1px solid var(--line); border-radius: 7px; padding: 0 6px; font-size: 14px; background: #fff; }
+  .bb-panel select { height: 32px; border: 1px solid var(--line); border-radius: 7px; padding: 0 6px; font-size: 13px; background: #fff; max-width: 160px; }
+  .bb-panel .bb-div { width: 1px; height: 24px; background: #B5D4F4; margin: 0 4px; }
   .bb-count { font-weight: 700; font-size: 14px; color: var(--brand-d); white-space: nowrap; }
   .bb-mini { height: 32px; padding: 0 10px; border: 1px solid var(--line); border-radius: 8px; background: #fff; font-size: 13px; font-weight: 600; cursor: pointer; color: var(--ink); white-space: nowrap; }
   .bb-mini:hover { background: var(--line-2); }
@@ -688,11 +688,28 @@
       </div>
     </div>
 <div class="modal-foot">
+      <button class="btn" id="wsHide" style="display:none;color:var(--ink-3)">隐藏网站</button>
       <button class="btn danger" id="wsDel" style="display:none">删除网站</button>
       <button class="btn" data-close>取消</button>
       <button class="btn btn-primary" id="wsSave">保存</button>
     </div>
 </div>
+</div>
+
+<!-- 网站管理弹窗 -->
+<div class="modal-mask" id="wsManageModal">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-head">
+      <h3>网站管理</h3>
+      <button class="close" data-close>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="modal-body" id="wsManageBody"></div>
+    <div class="modal-foot">
+      <button class="btn" data-close>关闭</button>
+    </div>
+  </div>
 </div>
 
 <!-- 确认弹窗 -->
@@ -801,56 +818,22 @@
 
 <!-- 批量操作栏（必须在 script 之前，否则 bindTabs 找不到节点会抛错） -->
 <div class="batch-bar" id="batchBar">
-  <!-- 行1：选择状态 + 快捷全选/取消 -->
+  <!-- 行1：选择状态 + 删除 -->
   <div class="bb-row">
     <span class="bb-count" id="bbCount">已选 0 项</span>
     <button class="bb-mini" id="bbSelectAll">全选本页</button>
     <button class="bb-mini" id="bbClear">取消选择</button>
-    <button class="bb-mini" id="bbToggleOps">⚙ 更多操作 ▾</button>
+    <button class="bb-mini danger" id="bbDelete" style="margin-left:auto">🗑 删除</button>
   </div>
-  <!-- 行2：操作面板（默认折叠，点击"更多操作"展开） -->
-  <div class="bb-ops" id="bbOps" hidden>
-    <div class="bb-op">
-      <span class="bb-op-title">📅 改截止日</span>
-      <div class="bb-op-body">
-        <label>顺延</label><input type="number" id="bbShift" value="3" min="-365" max="365"><label>天</label>
-        <button class="bb-mini" id="bbShiftApply">应用</button>
-        <label style="margin-left:6px">或设到</label><input type="date" id="bbDate">
-        <button class="bb-mini" id="bbDateApply">应用</button>
-      </div>
-    </div>
-    <div class="bb-op">
-      <span class="bb-op-title">⚡ 改优先级</span>
-      <div class="bb-op-body">
-        <button class="bb-mini p0" data-bp="P0">P0 紧急</button>
-        <button class="bb-mini p1" data-bp="P1">P1 重要</button>
-        <button class="bb-mini p2" data-bp="P2">P2 一般</button>
-      </div>
-    </div>
-    <div class="bb-op">
-      <span class="bb-op-title">📂 移到 / 复制</span>
-      <div class="bb-op-body">
-        <select class="bb-select" id="bbWebsite"></select>
-        <button class="bb-mini primary" id="bbMove">移动</button>
-        <button class="bb-mini" id="bbCopy">复制</button>
-      </div>
-    </div>
-    <div class="bb-op">
-      <span class="bb-op-title">🔁 步骤排期</span>
-      <div class="bb-op-body">
-        <label>起始</label><input type="date" id="bbStepStart">
-        <label>每步 +</label><input type="number" id="bbStepGap" value="1" min="0" max="30" style="width:56px">
-        <label>天</label>
-        <button class="bb-mini" id="bbStepApply">应用</button>
-      </div>
-    </div>
-    <div class="bb-op danger">
-      <span class="bb-op-title">🗑 危险操作</span>
-      <div class="bb-op-body">
-        <button class="bb-mini danger" id="bbDelete">删除选中</button>
-      </div>
-    </div>
+  <!-- 行2：4 个操作按钮 -->
+  <div class="bb-actions">
+    <button class="bb-act" data-act="due">📅 改截止日</button>
+    <button class="bb-act" data-act="priority">⚡ 改优先级</button>
+    <button class="bb-act" data-act="move">📂 移动/复制</button>
+    <button class="bb-act" data-act="step">🔁 步骤排期</button>
   </div>
+  <!-- 行3：inline 表单（动态） -->
+  <div class="bb-panel" id="bbPanel" hidden></div>
 </div>
 
 <script>
@@ -1224,7 +1207,7 @@ function renderTodayStep(s, taskId){
 
 /* ---------- 渲染：网站工作区 ---------- */
 function renderWsTabs() {
-  let html = websites.map(w => {
+  let html = websites.filter(w => !w.hidden).map(w => {
     const n = tasks.filter(t=>t.websiteId===w.id && !allDone(t)).length;
     // 主显示域名；名字放 tooltip
     const main = w.domain ? w.domain : w.name;
@@ -1237,6 +1220,13 @@ function renderWsTabs() {
     <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
     新建网站
   </button>`;
+  // 如果有隐藏的网站，加"管理网站"按钮
+  if(websites.some(w => w.hidden)){
+    html += `<button class="ws-tab add" id="wsManage" title="管理隐藏/归档的网站" style="color:var(--ink-3)">
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h18M3 12h18M3 17h18"/></svg>
+      管理
+    </button>`;
+  }
   $('#wsTabs').innerHTML = html;
 }
 
@@ -1730,6 +1720,34 @@ function bindTabs(){
   $('#wsTabs').addEventListener('touchend', () => { if(longPressTimer){ clearTimeout(longPressTimer); longPressTimer = null; } });
   // 删除网站
   on($('#wsDel'), 'click', confirmDelWs);
+  // 隐藏网站
+  on($('#wsHide'), 'click', confirmHideWs);
+  // 网站管理入口
+  on($('#wsTabs'), 'click', e => {
+    if(e.target.closest('#wsManage')){ openWsManage(); return; }
+  }, true); // capture 模式，先于其他 wsTabs click
+  // 网站管理里的恢复/隐藏
+  on($('#wsManageBody'), 'click', e => {
+    const restore = e.target.closest('[data-restore-ws]');
+    if(restore){
+      const w = websites.find(x => x.id === restore.dataset.restoreWs);
+      if(w){ w.hidden = false; save(K_WEBSITES, websites); openWsManage(); renderWsTabs(); toast('已恢复网站「'+w.name+'」','ok'); }
+      return;
+    }
+    const hide = e.target.closest('[data-hide-ws]');
+    if(hide){
+      const w = websites.find(x => x.id === hide.dataset.hideWs);
+      if(w){
+        w.hidden = true;
+        save(K_WEBSITES, websites);
+        if(activeWs === w.id) activeWs = websites.filter(x => !x.hidden)[0]?.id || null;
+        save(K_ACTIVE_WS, activeWs);
+        openWsManage(); renderAll();
+        toast('已隐藏网站「'+w.name+'」','ok');
+      }
+      return;
+    }
+  });
   // 任务网格内事件
   on($('#taskGrid'), 'click', e => {
     // 选择 icon：点击切换选中
@@ -1871,25 +1889,67 @@ function bindTabs(){
   // 批量操作栏
   on($('#bbSelectAll'), 'click', selectAllVisible);
   on($('#bbClear'), 'click', clearSelection);
-  on($('#bbShiftApply'), 'click', () => { const v = parseInt($('#bbShift').value, 10); if(!isNaN(v)) batchShiftDue(v); });
-  on($('#bbDateApply'), 'click', () => batchSetDate($('#bbDate').value));
-  on($('#bbMove'), 'click', () => batchMoveWebsite($('#bbWebsite').value));
-  on($('#bbCopy'), 'click', () => batchCopyWebsite($('#bbWebsite').value));
-  on($('#bbStepApply'), 'click', () => { const s = $('#bbStepStart').value; const g = parseInt($('#bbStepGap').value,10)||0; batchStepSchedule(s, g); });
   on($('#bbDelete'), 'click', batchDeleteSelected);
-  // 批量栏"更多操作"展开/折叠
-  on($('#bbToggleOps'), 'click', () => {
-    const ops = $('#bbOps');
-    const btn = $('#bbToggleOps');
-    const isHidden = ops.hasAttribute('hidden');
-    if(isHidden){ ops.removeAttribute('hidden'); btn.textContent = '⚙ 更多操作 ▴'; }
-    else { ops.setAttribute('hidden',''); btn.textContent = '⚙ 更多操作 ▾'; }
+  // 批量栏统一事件委托（处理动态生成的 inline 表单按钮）
+  on($('#batchBar'), 'click', e => {
+    // 操作按钮切换
+    const actBtn = e.target.closest('[data-act]');
+    if(actBtn){
+      const act = actBtn.dataset.act;
+      const panel = $('#bbPanel');
+      const isActive = actBtn.classList.contains('active');
+      if(isActive){
+        // 折叠
+        panel.hidden = true;
+        $$('.bb-act').forEach(b => b.classList.remove('active'));
+        return;
+      }
+      // 激活当前 + 填充表单
+      $$('.bb-act').forEach(b => b.classList.toggle('active', b === actBtn));
+      panel.innerHTML = getBatchPanelHTML(act);
+      panel.hidden = false;
+      // 移动/复制时填充网站下拉
+      if(act === 'move'){
+        const sel = $('#bbWebsite');
+        if(sel) sel.innerHTML = websites.map(w => '<option value="' + w.id + '">' + escapeHtml(w.domain||w.name) + '</option>').join('');
+      }
+      return;
+    }
+    // panel 内按钮（事件委托）
+    const shiftApply = e.target.closest('#bbShiftApply');
+    if(shiftApply){ const v = parseInt($('#bbShift').value, 10); if(!isNaN(v)) batchShiftDue(v); return; }
+    const dateApply = e.target.closest('#bbDateApply');
+    if(dateApply){ batchSetDate($('#bbDate').value); return; }
+    const bp = e.target.closest('[data-bp]');
+    if(bp){ batchSetPriority(bp.dataset.bp); return; }
+    const move = e.target.closest('#bbMove');
+    if(move){ batchMoveWebsite($('#bbWebsite').value); return; }
+    const copy = e.target.closest('#bbCopy');
+    if(copy){ batchCopyWebsite($('#bbWebsite').value); return; }
+    const stepApply = e.target.closest('#bbStepApply');
+    if(stepApply){ const s = $('#bbStepStart').value; const g = parseInt($('#bbStepGap').value,10)||0; batchStepSchedule(s, g); return; }
   });
-  onAll($$('#batchBar [data-bp]'), 'click', b => batchSetPriority(b.dataset.bp));
 
   // 批量导入模板
   on($('#tplImportBatch'), 'click', () => $('#tplImportBatchFile').click());
   on($('#tplImportBatchFile'), 'change', importTemplatesBatch);
+}
+
+/* 批量栏 inline 表单 HTML */
+function getBatchPanelHTML(act){
+  if(act === 'due'){
+    return '<label>顺延</label><input type="number" id="bbShift" value="3" min="-365" max="365"><label>天</label><button class="bb-mini primary" id="bbShiftApply">应用</button><span class="bb-div"></span><label>或设到</label><input type="date" id="bbDate"><button class="bb-mini primary" id="bbDateApply">应用</button>';
+  }
+  if(act === 'priority'){
+    return '<label>设为</label><button class="bb-mini p0" data-bp="P0">P0 紧急</button><button class="bb-mini p1" data-bp="P1">P1 重要</button><button class="bb-mini p2" data-bp="P2">P2 一般</button>';
+  }
+  if(act === 'move'){
+    return '<label>目标网站</label><select class="bb-select" id="bbWebsite"></select><button class="bb-mini primary" id="bbMove">移动</button><button class="bb-mini" id="bbCopy">复制</button>';
+  }
+  if(act === 'step'){
+    return '<label>起始</label><input type="date" id="bbStepStart"><label>每步 +</label><input type="number" id="bbStepGap" value="1" min="0" max="30" style="width:56px"><label>天</label><button class="bb-mini primary" id="bbStepApply">应用</button>';
+  }
+  return '';
 }
 
 /* 批量导入模板：JSON 格式支持两种
@@ -2250,6 +2310,7 @@ function openWsModal(editingId){
     b.classList.add('active'); b.style.borderWidth='2px'; b.style.borderColor=b.dataset.c;
   }));
   $('#wsDel').style.display = editingId ? '' : 'none';
+  $('#wsHide').style.display = (editingId && !w.hidden) ? '' : 'none';
   $('#wsModal').classList.add('show');
 }
 function saveWs(){
@@ -2265,7 +2326,23 @@ function saveWs(){
     save(K_WEBSITES, websites);
     toast('已更新网站','ok');
   } else {
-    const w = { id:uid(), name, domain, color };
+    // 同名检测：如果有同名隐藏网站，提示恢复
+    const sameDomain = websites.find(w => w.domain === domain && w.hidden);
+    if(sameDomain){
+      showConfirm('已有同名网站「'+sameDomain.name+'」已隐藏', '是否恢复显示这个隐藏的网站？选「确认」恢复，选「取消」继续新建。', () => {
+        sameDomain.hidden = false;
+        sameDomain.name = name; // 用新名称覆盖
+        sameDomain.color = color;
+        save(K_WEBSITES, websites);
+        activeWs = sameDomain.id; save(K_ACTIVE_WS, activeWs);
+        editingWsId = null;
+        closeAllModals();
+        renderAll();
+        toast('已恢复网站','ok');
+      });
+      return; // 不新建，等用户决定
+    }
+    const w = { id:uid(), name, domain, color, hidden:false };
     websites.push(w);
     activeWs = w.id; save(K_ACTIVE_WS, activeWs);
     save(K_WEBSITES, websites);
@@ -2295,6 +2372,42 @@ function confirmDelWs(){
     renderAll();
     toast('已删除网站','ok');
   });
+}
+function confirmHideWs(){
+  const w = websites.find(x => x.id === editingWsId);
+  if(!w) return;
+  w.hidden = true;
+  save(K_WEBSITES, websites);
+  if(activeWs === w.id) activeWs = websites.filter(x => !x.hidden)[0]?.id || null;
+  save(K_ACTIVE_WS, activeWs);
+  editingWsId = null;
+  closeAllModals();
+  renderAll();
+  toast('已隐藏网站「'+w.name+'」','ok');
+}
+function openWsManage(){
+  const body = $('#wsManageBody');
+  const visible = websites.filter(w => !w.hidden);
+  const hidden = websites.filter(w => w.hidden);
+  let html = '';
+  if(hidden.length){
+    html += '<div style="font-size:13px;font-weight:600;color:var(--ink-3);margin-bottom:8px">已隐藏/归档（'+hidden.length+'）</div>';
+    hidden.forEach(w => {
+      const n = tasks.filter(t => t.websiteId === w.id).length;
+      html += '<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;margin-bottom:6px;background:var(--line-2)"><span class="dot" style="width:10px;height:10px;border-radius:3px;background:'+w.color+';flex-shrink:0"></span><div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:600;color:var(--ink-3);text-decoration:line-through">'+escapeHtml(w.domain||w.name)+'</div><div style="font-size:11px;color:var(--ink-3)">'+escapeHtml(w.name)+' · '+n+' 项任务</div></div><button class="bb-mini primary" data-restore-ws="'+w.id+'">恢复</button></div>';
+    });
+  } else {
+    html += '<div style="text-align:center;color:var(--ink-3);font-size:13px;padding:20px 0">没有隐藏的网站</div>';
+  }
+  if(visible.length){
+    html += '<div style="font-size:13px;font-weight:600;color:var(--ink-2);margin:14px 0 8px">显示中（'+visible.length+'）</div>';
+    visible.forEach(w => {
+      const n = tasks.filter(t => t.websiteId === w.id).length;
+      html += '<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;margin-bottom:6px"><span class="dot" style="width:10px;height:10px;border-radius:3px;background:'+w.color+';flex-shrink:0"></span><div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:600">'+escapeHtml(w.domain||w.name)+'</div><div style="font-size:11px;color:var(--ink-3)">'+escapeHtml(w.name)+' · '+n+' 项任务</div></div><button class="bb-mini" data-hide-ws="'+w.id+'">隐藏</button></div>';
+    });
+  }
+  body.innerHTML = html;
+  $('#wsManageModal').classList.add('show');
 }
 
 /* ---------- 确认弹窗 ---------- */
