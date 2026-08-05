@@ -184,6 +184,32 @@
   .icon-btn:hover { background: var(--line-2); color: var(--ink); }
   .icon-btn svg { width: 15px; height: 15px; }
   .icon-btn.danger:hover { background: var(--p0-bg); color: var(--p0); }
+  /* 批量选择 */
+  .tc-sel { display: inline-flex; align-items: center; flex-shrink: 0; margin-right: 4px; }
+  .tc-sel input { width: 18px; height: 18px; accent-color: var(--brand); cursor: pointer; margin: 0; }
+  .task-card.sel { box-shadow: 0 0 0 2px var(--brand), var(--card-shadow); }
+  /* 批量操作栏 */
+  .batch-bar {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 120;
+    background: #fff; border-top: 1px solid var(--line); box-shadow: 0 -6px 24px rgba(15,23,42,.12);
+    display: none; padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
+  }
+  .batch-bar.show { display: block; }
+  .batch-bar .bb-inner { display: flex; align-items: center; gap: 10px; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 2px; }
+  .bb-count { font-weight: 700; font-size: 14px; color: var(--brand-d); white-space: nowrap; }
+  .bb-sep { width: 1px; height: 24px; background: var(--line); flex-shrink: 0; }
+  .bb-group { display: flex; align-items: center; gap: 6px; white-space: nowrap; flex-shrink: 0; }
+  .bb-group label { font-size: 12px; color: var(--ink-2); }
+  .bb-group input[type=number] { width: 56px; height: 32px; border: 1px solid var(--line); border-radius: 8px; padding: 0 8px; font-size: 16px; }
+  .bb-group input[type=date] { height: 32px; border: 1px solid var(--line); border-radius: 8px; padding: 0 6px; font-size: 16px; }
+  .bb-mini { height: 32px; padding: 0 10px; border: 1px solid var(--line); border-radius: 8px; background: #fff; font-size: 13px; font-weight: 600; cursor: pointer; color: var(--ink); white-space: nowrap; }
+  .bb-mini:hover { background: var(--line-2); }
+  .bb-mini.p0 { color: var(--p0); border-color: var(--p0-bg); }
+  .bb-mini.p1 { color: #92400E; border-color: var(--p1-bg); }
+  .bb-mini.p2 { color: #1E40AF; border-color: var(--p2-bg); }
+  .bb-mini.danger { color: var(--p0); border-color: var(--p0-bg); }
+  .bb-mini.primary { background: var(--brand); color: #fff; border-color: var(--brand); }
+  .bb-select { height: 32px; border: 1px solid var(--line); border-radius: 8px; padding: 0 6px; font-size: 13px; max-width: 140px; }
 
   /* 进度条 */
   .tc-progress { display: flex; align-items: center; gap: 8px; }
@@ -289,7 +315,7 @@
     box-shadow: 0 25px 50px -12px rgba(0,0,0,.25); animation: pop .18s ease;
   }
   @keyframes pop { from { transform: scale(.94); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-  .modal-head { display: flex; align-items: center; padding: 16px 18px; border-bottom: 1px solid var(--line); }
+  .modal-head { display: flex; align-items: center; padding: 16px 18px; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: #fff; z-index: 2; }
   .modal-head h3 { font-size: 16px; font-weight: 700; }
   .modal-head .close { margin-left: auto; width: 32px; height: 32px; border-radius: 8px; display: grid; place-items: center; color: var(--ink-3); }
   .modal-head .close:hover { background: var(--line-2); color: var(--ink); }
@@ -318,6 +344,7 @@
 
   /* 确认弹窗 */
   .confirm-modal { max-width: 380px; }
+  #confirmModal { z-index: 150; }  /* 确认框必须高于其他弹窗，否则会被模板库等盖住 */
   .confirm-modal .modal-body { text-align: center; padding: 24px 20px 8px; }
   .confirm-modal .icon-wrap { width: 52px; height: 52px; border-radius: 50%; background: var(--p0-bg); display: grid; place-items: center; margin: 0 auto 12px; }
   .confirm-modal .icon-wrap svg { width: 26px; height: 26px; color: var(--p0); }
@@ -357,8 +384,8 @@
     .board { grid-template-columns: 1fr; gap: 10px; }
     .field-row { grid-template-columns: 1fr; }
     .ws-tab { height: 36px; font-size: 13px; padding: 0 11px; }
-    .modal { max-width: 100%; border-radius: 14px 14px 0 0; align-self: flex-end; max-height: 92vh; }
-    .modal-mask { align-items: flex-end; padding: 0; }
+    .modal { max-width: 100%; border-radius: 14px; align-self: center; max-height: 85vh; }
+    .modal-mask { align-items: center; padding: 12px; }
     @keyframes pop { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
   }
   /* 底部导航(移动端) */
@@ -569,7 +596,7 @@
       <p id="confirmText"></p>
     </div>
     <div class="modal-foot">
-      <button class="btn" data-close>取消</button>
+      <button class="btn" id="confirmCancel">取消</button>
       <button class="btn btn-danger" id="confirmOk">确认</button>
     </div>
   </div>
@@ -670,7 +697,7 @@ const K_TASKS = PREFIX + 'tasks';
 const K_TEMPLATES = PREFIX + 'templates';
 const K_SAMPLE = PREFIX + 'sample_loaded';
 const SAMPLE_VERSION = 'v2'; // 改了示例网站命名后递增
-const TPL_VERSION = 'v2';
+const TPL_VERSION = 'v4';
 const K_ACTIVE_WS = PREFIX + 'active_ws';
 const K_SYNC = PREFIX + 'sync_cfg';
 const K_SYNC_META = PREFIX + 'sync_meta';
@@ -698,6 +725,15 @@ function relDue(dueStr) {
   return {label:n+'天后', cls:''};
 }
 function load(k, def) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : def; } catch { return def; } }
+function shiftDate(str, n) {
+  const [y,m,d] = str.split('-').map(Number);
+  const dt = new Date(y, m-1, d);
+  dt.setDate(dt.getDate() + n);
+  const yy = dt.getFullYear();
+  const mm = String(dt.getMonth()+1).padStart(2,'0');
+  const dd = String(dt.getDate()).padStart(2,'0');
+  return `${yy}-${mm}-${dd}`;
+}
 function save(k, v){ localStorage.setItem(k, JSON.stringify(v)); if(!suppressSync && (k===K_WEBSITES||k===K_TASKS||k===K_TEMPLATES)) schedulePush(); }
 function escapeHtml(s){ return String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
@@ -786,55 +822,93 @@ function seedTemplates() {
   const loaded = localStorage.getItem(PREFIX + 'tpl_version');
   if(loaded === TPL_VERSION) return false;
   const presets = [
-    { id:uid(), name:'建站标准流程', title:'新网站搭建', priority:'P1', steps:[
-      {id:uid(),name:'行业AdSense合规预检',skippable:true},
-      {id:uid(),name:'公司信息生成（中英双语）',skippable:false},
-      {id:uid(),name:'网站大纲规划（三层话题地图）',skippable:false},
-      {id:uid(),name:'WP环境准备（插件/Blocksy主题/清理测试内容）',skippable:false},
-      {id:uid(),name:'API凭证配置（api.env）',skippable:false},
-      {id:uid(),name:'品牌配色与Logo设计',skippable:false},
+    { id:uid(), name:'网站基本信息', title:'网站基本信息', priority:'P1', steps:[
+      {id:uid(),name:'公司信息',skippable:false},
+      {id:uid(),name:'网站大纲',skippable:false},
+      {id:uid(),name:'WP 环境',skippable:false},
+      {id:uid(),name:'API 凭证',skippable:false},
+      {id:uid(),name:'网站配色',skippable:false},
+      {id:uid(),name:'Logo',skippable:false},
+    ]},
+    { id:uid(), name:'分类', title:'分类', priority:'P2', steps:[
+      {id:uid(),name:'分类图片',skippable:false},
       {id:uid(),name:'分类导入',skippable:false},
-      {id:uid(),name:'产品关键词+SERP+生成导入',skippable:false},
-      {id:uid(),name:'文章关键词+SERP+作者+生成导入',skippable:false},
-      {id:uid(),name:'页面规划与HTML施工',skippable:false},
-      {id:uid(),name:'上线清单核对（33项）',skippable:false},
-      {id:uid(),name:'提交搜索引擎收录',skippable:true},
     ]},
-    { id:uid(), name:'产品页上新', title:'产品页上新', priority:'P1', steps:[
-      {id:uid(),name:'拍产品图',skippable:false},
-      {id:uid(),name:'修图裁剪',skippable:false},
-      {id:uid(),name:'撰写英文文案',skippable:true},
-      {id:uid(),name:'上传到WordPress',skippable:false},
-      {id:uid(),name:'SEO元信息检查',skippable:true},
+    { id:uid(), name:'Product', title:'Product', priority:'P1', steps:[
+      {id:uid(),name:'Product SERP + Plan',skippable:false},
+      {id:uid(),name:'Product 模版',skippable:false},
+      {id:uid(),name:'Product HTML',skippable:false},
+      {id:uid(),name:'Product Image',skippable:false},
+      {id:uid(),name:'导入产品',skippable:false},
+      {id:uid(),name:'导入产品图',skippable:false},
     ]},
-    { id:uid(), name:'博客文章发布', title:'博客文章', priority:'P2', steps:[
-      {id:uid(),name:'选题调研',skippable:false},
-      {id:uid(),name:'撰写初稿',skippable:false},
-      {id:uid(),name:'配图设计',skippable:true},
-      {id:uid(),name:'SEO优化',skippable:false},
-      {id:uid(),name:'发布上线',skippable:false},
-      {id:uid(),name:'外链建设',skippable:true},
+    { id:uid(), name:'Post', title:'Post', priority:'P1', steps:[
+      {id:uid(),name:'Post SERP + Plan',skippable:false},
+      {id:uid(),name:'Post Outline',skippable:false},
+      {id:uid(),name:'Post HTML',skippable:false},
+      {id:uid(),name:'Post Image',skippable:false},
+      {id:uid(),name:'导入 Post HTML',skippable:false},
+      {id:uid(),name:'导入 Post Image',skippable:false},
+      {id:uid(),name:'Date Sync',skippable:false},
     ]},
-    { id:uid(), name:'支付通道接入', title:'接入支付通道', priority:'P1', steps:[
-      {id:uid(),name:'注册支付平台账户',skippable:false},
-      {id:uid(),name:'对接API',skippable:false},
-      {id:uid(),name:'沙箱测试',skippable:false},
-      {id:uid(),name:'正式上线',skippable:false},
+    { id:uid(), name:'Author', title:'Author', priority:'P2', steps:[
+      {id:uid(),name:'Author Image',skippable:false},
+      {id:uid(),name:'导入 Author',skippable:false},
     ]},
-    { id:uid(), name:'404死链检测', title:'网站链接体检', priority:'P1', steps:[
-      {id:uid(),name:'确认目标站点URL',skippable:false},
-      {id:uid(),name:'设定扫描范围（页数/深度/内外链）',skippable:true},
-      {id:uid(),name:'运行链接检测脚本（桌面+手机双UA爬取）',skippable:false},
-      {id:uid(),name:'导出报告（Markdown+JSON）',skippable:false},
-      {id:uid(),name:'解读死链并给出修复优先级',skippable:false},
+    { id:uid(), name:'Page', title:'Page', priority:'P1', steps:[
+      {id:uid(),name:'Page 归类',skippable:false},
+      {id:uid(),name:'HTML Page 生成并导入',skippable:false},
+      {id:uid(),name:'Page Image 生成上传替换',skippable:false},
+      {id:uid(),name:'Home About Contact 内容替换',skippable:false},
+      {id:uid(),name:'Header Footer',skippable:false},
+      {id:uid(),name:'上线清单核对',skippable:false},
     ]},
-    { id:uid(), name:'文章信息增量注入', title:'文章信息增量注入', priority:'P1', steps:[
-      {id:uid(),name:'确认目标站点与api.env（Phase 0）',skippable:false},
-      {id:uid(),name:'盘点文章并制定注入计划（抽H2/H3锚点）（Phase 1）',skippable:false},
-      {id:uid(),name:'逐篇注入资产（备份→生成→写回→验证）（Phase 2）',skippable:false},
-      {id:uid(),name:'全量终检（HTTP200+标记+JS干净）（Phase 3）',skippable:false},
-      {id:uid(),name:'输出执行报告（Phase 4）',skippable:false},
-      {id:uid(),name:'同步发布时间 Date Sync（post_modified=post_date）（Phase 5）',skippable:false},
+    { id:uid(), name:'404检测', title:'404 检测', priority:'P2', steps:[
+      {id:uid(),name:'404 检测',skippable:false},
+      {id:uid(),name:'Post 内链修改',skippable:false},
+      {id:uid(),name:'404 Post Date Sync',skippable:true},
+    ]},
+    { id:uid(), name:'Post信息增量', title:'Post 信息增量', priority:'P2', steps:[
+      {id:uid(),name:'Post 信息增量规划',skippable:false},
+      {id:uid(),name:'测试不同 css 类型样本',skippable:false},
+      {id:uid(),name:'批量生成并更新 Post Content',skippable:false},
+      {id:uid(),name:'Post Date Sync',skippable:false},
+    ]},
+    { id:uid(), name:'Adsense审计', title:'Adsense 审计', priority:'P1', steps:[
+      {id:uid(),name:'网站审计',skippable:false},
+      {id:uid(),name:'修改网站',skippable:false},
+      {id:uid(),name:'Date Sync',skippable:false},
+    ]},
+    { id:uid(), name:'建站全套', title:'建站全套', priority:'P1', steps:[
+      {id:uid(),name:'公司信息生成',skippable:false},
+      {id:uid(),name:'网站大纲规划',skippable:false},
+      {id:uid(),name:'WP环境准备',skippable:false},
+      {id:uid(),name:'API凭证配置',skippable:false},
+      {id:uid(),name:'品牌配色与Logo设计',skippable:false},
+      {id:uid(),name:'Logo',skippable:false},
+      {id:uid(),name:'分类图片',skippable:false},
+      {id:uid(),name:'分类导入',skippable:false},
+      {id:uid(),name:'Product SERP + Plan',skippable:false},
+      {id:uid(),name:'Product 模版',skippable:false},
+      {id:uid(),name:'Product HTML',skippable:false},
+      {id:uid(),name:'Product Image',skippable:false},
+      {id:uid(),name:'导入产品',skippable:false},
+      {id:uid(),name:'导入产品图',skippable:false},
+      {id:uid(),name:'Post SERP + Plan',skippable:false},
+      {id:uid(),name:'Post Outline',skippable:false},
+      {id:uid(),name:'Post HTML',skippable:false},
+      {id:uid(),name:'Post Image',skippable:false},
+      {id:uid(),name:'导入 Post HTML',skippable:false},
+      {id:uid(),name:'导入 Post Image',skippable:false},
+      {id:uid(),name:'Date Sync',skippable:false},
+      {id:uid(),name:'Author Image',skippable:false},
+      {id:uid(),name:'导入 Author',skippable:false},
+      {id:uid(),name:'Page 归类',skippable:false},
+      {id:uid(),name:'HTML Page 生成并导入',skippable:false},
+      {id:uid(),name:'Page Image 生成上传替换',skippable:false},
+      {id:uid(),name:'Home About Contact 内容替换',skippable:false},
+      {id:uid(),name:'Header Footer',skippable:false},
+      {id:uid(),name:'上线清单核对',skippable:false},
     ]},
   ];
   // 增量合并：保留用户自建模板，预置模板用最新定义覆盖（不会清掉你存过的模板）
@@ -856,6 +930,7 @@ let syncMeta = load(K_SYNC_META, { lastSync:0, status:'idle', msg:'' });
 let suppressSync = false; // 外部拉取写入时抑制自动 push，防循环
 let syncPushTimer = null;
 let savingTplFromTask = null;
+let selectedTasks = new Set(); // 批量选择（会话态，不持久化）
 
 /* ---------- 渲染：今日要处理 ---------- */
 function renderToday() {
@@ -988,6 +1063,7 @@ function renderTaskCard(x) {
   const prog = taskProgress(x);
   const done = allDone(x);
   const r = relDue(x.due);
+  const sel = selectedTasks.has(x.id);
   let stepsHtml = x.steps.map(s => `
     <div class="step ${s.done?'done':''}" data-step="${s.id}" data-task="${x.id}">
       <div class="step-check">
@@ -1007,8 +1083,11 @@ function renderTaskCard(x) {
       <button>添加</button>
     </div>`;
   return `
-    <div class="task-card ${done?'done':''}" data-card="${x.id}">
+    <div class="task-card ${done?'done':''} ${sel?'sel':''}" data-card="${x.id}">
       <div class="tc-top">
+        <label class="tc-sel" title="选择此任务">
+          <input type="checkbox" data-select="${x.id}" ${sel?'checked':''}>
+        </label>
         <div class="tc-pmark" style="background:${PCOLOR[x.priority]}"></div>
         <div class="tc-main">
           <div class="tc-title">${escapeHtml(x.title)}</div>
@@ -1036,6 +1115,78 @@ function renderTaskCard(x) {
       </div>
       <div class="steps">${stepsHtml}</div>
     </div>`;
+}
+
+/* ---------- 批量编辑 ---------- */
+function renderBatchBar() {
+  const bar = $('#batchBar');
+  const n = selectedTasks.size;
+  $('#bbCount').textContent = '已选 ' + n + ' 项';
+  bar.classList.toggle('show', n > 0);
+  // 网站下拉
+  $('#bbWebsite').innerHTML = websites.map(w=>`<option value="${w.id}">${escapeHtml(w.domain||w.name)}</option>`).join('')
+    || '<option value="">无网站</option>';
+  if(activeWs) $('#bbWebsite').value = activeWs;
+}
+function clearSelection() {
+  selectedTasks.clear();
+  renderBatchBar();
+  // 仅更新卡片选中态，不整页重渲染（保留滚动位置）
+  $$('.task-card.sel').forEach(c => { c.classList.remove('sel'); const cb=c.querySelector('[data-select]'); if(cb) cb.checked=false; });
+}
+function selectAllVisible() {
+  const w = websites.find(x=>x.id===activeWs);
+  if(!w) return;
+  tasks.filter(t=>t.websiteId===w.id).forEach(t => selectedTasks.add(t.id));
+  renderTaskGrid(); renderBatchBar();
+}
+function batchSetPriority(p) {
+  if(!selectedTasks.size) return;
+  let c = 0;
+  tasks.forEach(t => { if(selectedTasks.has(t.id)) { t.priority = p; c++; } });
+  save(K_TASKS, tasks);
+  clearSelection(); renderAll();
+  toast('已将 '+c+' 项优先级设为 '+p, 'ok');
+}
+function batchShiftDue(n) {
+  if(!selectedTasks.size) return;
+  const t = todayStr();
+  let c = 0;
+  tasks.forEach(x => {
+    if(!selectedTasks.has(x.id)) return;
+    if(x.due) { x.due = shiftDate(x.due, n); }
+    else { x.due = shiftDate(t, n); }
+    c++;
+  });
+  save(K_TASKS, tasks);
+  clearSelection(); renderAll();
+  toast('已顺延 '+n+' 天（'+c+' 项）', 'ok');
+}
+function batchSetDate(dateStr) {
+  if(!selectedTasks.size || !dateStr) return;
+  let c = 0;
+  tasks.forEach(x => { if(selectedTasks.has(x.id)) { x.due = dateStr; c++; } });
+  save(K_TASKS, tasks);
+  clearSelection(); renderAll();
+  toast('已设日期 '+dateStr+'（'+c+' 项）', 'ok');
+}
+function batchMoveWebsite(wid) {
+  if(!selectedTasks.size || !wid) return;
+  let c = 0;
+  tasks.forEach(x => { if(selectedTasks.has(x.id)) { x.websiteId = wid; c++; } });
+  save(K_TASKS, tasks);
+  clearSelection(); renderAll();
+  toast('已移动 '+c+' 项到 '+ (websites.find(w=>w.id===wid)?.domain||'网站'), 'ok');
+}
+function batchDeleteSelected() {
+  if(!selectedTasks.size) return;
+  const n = selectedTasks.size;
+  showConfirm('删除选中的 '+n+' 项工作？', '这 '+n+' 项工作及其所有步骤将被永久删除，此操作不可恢复。', () => {
+    tasks = tasks.filter(t => !selectedTasks.has(t.id));
+    save(K_TASKS, tasks);
+    clearSelection(); renderAll();
+    toast('已删除 '+n+' 项工作','ok');
+  });
 }
 
 /* ---------- 渲染：优先级看板 ---------- */
@@ -1166,6 +1317,7 @@ function renderAll(){
   renderTaskGrid();
   renderBoard();
   renderUpcoming();
+  renderBatchBar();
   checkBackupTip();
 }
 
@@ -1246,6 +1398,10 @@ function bindTabs(){
   });
   // 任务网格内事件
   $('#taskGrid').addEventListener('click', e => {
+    const sel = e.target.closest('[data-select]');
+    if(sel){ e.preventDefault(); const id = sel.dataset.select; if(selectedTasks.has(id)) selectedTasks.delete(id); else selectedTasks.add(id);
+      const card = sel.closest('.task-card'); if(card) card.classList.toggle('sel', selectedTasks.has(id));
+      renderBatchBar(); return; }
     const edit = e.target.closest('[data-edit]');
     const del = e.target.closest('[data-del]');
     const tpl = e.target.closest('[data-tpl]');
@@ -1290,6 +1446,14 @@ function bindTabs(){
   $('#taskSave').addEventListener('click', saveTask);
   // 网站保存
   $('#wsSave').addEventListener('click', saveWs);
+  // 批量操作栏
+  $('#bbSelectAll').addEventListener('click', selectAllVisible);
+  $('#bbClear').addEventListener('click', clearSelection);
+  $('#bbShiftApply').addEventListener('click', () => { const v = parseInt($('#bbShift').value, 10); if(!isNaN(v)) batchShiftDue(v); });
+  $('#bbDateApply').addEventListener('click', () => batchSetDate($('#bbDate').value));
+  $('#bbMove').addEventListener('click', () => batchMoveWebsite($('#bbWebsite').value));
+  $('#bbDelete').addEventListener('click', batchDeleteSelected);
+  $$('#batchBar [data-bp]').forEach(b => b.addEventListener('click', () => batchSetPriority(b.dataset.bp)));
 }
 
 /* ---------- 任务模态 ---------- */
@@ -1371,6 +1535,7 @@ function confirmDelTask(id){
   if(!t) return;
   showConfirm('删除工作内容？', `「${t.title}」及其所有步骤将被删除，此操作不可恢复。`, () => {
     tasks = tasks.filter(x=>x.id!==id);
+    selectedTasks.delete(id);
     save(K_TASKS, tasks);
     renderAll();
     toast('已删除','ok');
@@ -1521,8 +1686,13 @@ function showConfirm(title, text, cb){
   $('#confirmModal').classList.add('show');
 }
 $('#confirmOk').addEventListener('click', () => {
-  closeAllModals();
-  if(confirmCb){ confirmCb(); confirmCb=null; }
+  const cb = confirmCb; confirmCb = null;
+  $('#confirmModal').classList.remove('show');  // 只关确认框,保留底层弹窗(如模板库)
+  if(cb) cb();
+});
+$('#confirmCancel').addEventListener('click', () => {
+  $('#confirmModal').classList.remove('show');
+  confirmCb = null;
 });
 
 function closeAllModals(){ $$('.modal-mask').forEach(m=>m.classList.remove('show')); }
@@ -1741,5 +1911,40 @@ bindTabs();
 renderAll();
 initAutoSync();
 </script>
+<!-- 批量操作栏 -->
+<div class="batch-bar" id="batchBar">
+  <div class="bb-inner">
+    <span class="bb-count" id="bbCount">已选 0 项</span>
+    <button class="bb-mini" id="bbSelectAll">全选本页</button>
+    <button class="bb-mini" id="bbClear">取消选择</button>
+    <div class="bb-sep"></div>
+    <div class="bb-group">
+      <label>顺延</label>
+      <input type="number" id="bbShift" value="3" min="-365" max="365">
+      <label>天</label>
+      <button class="bb-mini" id="bbShiftApply">应用</button>
+    </div>
+    <div class="bb-group">
+      <label>设日期</label>
+      <input type="date" id="bbDate">
+      <button class="bb-mini" id="bbDateApply">应用</button>
+    </div>
+    <div class="bb-sep"></div>
+    <div class="bb-group">
+      <label>优先级</label>
+      <button class="bb-mini p0" data-bp="P0">P0</button>
+      <button class="bb-mini p1" data-bp="P1">P1</button>
+      <button class="bb-mini p2" data-bp="P2">P2</button>
+    </div>
+    <div class="bb-sep"></div>
+    <div class="bb-group">
+      <label>移到</label>
+      <select class="bb-select" id="bbWebsite"></select>
+      <button class="bb-mini primary" id="bbMove">移动</button>
+    </div>
+    <div class="bb-sep"></div>
+    <button class="bb-mini danger" id="bbDelete">删除选中</button>
+  </div>
+</div>
 </body>
 </html>
