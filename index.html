@@ -1934,7 +1934,18 @@ if(!activeWs || !websites.find(w=>w.id===activeWs)){ activeWs = websites[0]?.id 
 bindTabs();
 // 任何渲染异常都不让页面全空
 try { renderAll(); } catch(err){ console.error('renderAll failed:', err); }
-initAutoSync();
+// 关键修复：本地空数据且已配云端 → 先 await 拉一次再渲染（否则刷新后空白）
+(async () => {
+  if(syncCfg && syncCfg.token){
+    if(websites.length === 0 && tasks.length === 0){
+      // 本地空 → 必须等 doPull 完成才能正确渲染
+      await doPull(false);
+    } else {
+      // 本地有数据 → 静默拉取做增量合并（不 await，避免阻塞渲染）
+      doPull(false).catch(()=>{});
+    }
+  }
+})();
 </script>
 <!-- 批量操作栏 -->
 <div class="batch-bar" id="batchBar">
