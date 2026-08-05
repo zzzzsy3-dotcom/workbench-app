@@ -340,7 +340,9 @@
   /* ===== 近期工作 ===== */
   .upcoming { display: flex; flex-direction: column; gap: 10px; }
   .day-group { background: #fff; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow); }
-  .day-head { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--line-2); border-bottom: 1px solid var(--line); }
+  .day-head { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--line-2); border-bottom: 1px solid var(--line); cursor: pointer; user-select: none; transition: background .12s; }
+  .day-head:hover { background: #E5E3DC; }
+  .day-head.collapsed { background: #fff; border-bottom-color: transparent; }
   .day-head .dnum { font-size: 18px; font-weight: 800; line-height: 1; }
   .day-head .dinfo { font-size: 12.5px; color: var(--ink-2); font-weight: 600; }
   .day-head .dinfo .dweek { color: var(--ink-3); font-weight: 500; }
@@ -1131,6 +1133,7 @@ let syncPushTimer = null;
 let savingTplFromTask = null;
 let selectedTasks = new Set(); // 批量选择（会话态，不持久化）
 let expandedTasks = new Set(); // 今天要处理里展开的任务（会话态，刷新后重置）
+let expandedUpcoming = new Set(); // 近期工作里展开的日期（会话态，刷新后重置）
 let remoteSha = load(K_SYNC_SHA, null); // 单独持久化，刷新后 push 也能用
 
 /* ---------- 渲染：今日要处理 ---------- */
@@ -1144,10 +1147,10 @@ function renderToday() {
   tasks.forEach(task => {
     if(allDone(task) || task.taskDone) return; // 保底加 taskDone 字段检查
     const taskDueIn = task.due ? daysBetween(t, task.due) : 9999;
-    const taskInRange = taskDueIn <= 3;
+    const taskInRange = taskDueIn <= 0; // 只显示今天 + 逾期（负数）
     if(taskInRange){ taskMap.set(task.id, { task, due: task.due, dueSource: 'task' }); return; }
     // 任务整体不在范围，但步骤可能单独到期
-    const stepInRange = task.steps.some(s => !s.done && s.due && daysBetween(t, s.due) <= 3);
+    const stepInRange = task.steps.some(s => !s.done && s.due && daysBetween(t, s.due) <= 0);
     if(stepInRange) taskMap.set(task.id, { task, due: task.due || '', dueSource: 'step' });
   });
   const items = [...taskMap.values()];
@@ -1538,7 +1541,7 @@ function renderUpcoming() {
   tasks.forEach(task => {
     if(allDone(task) || task.taskDone) return; // 保底加 taskDone 字段检查
     const taskDueIn = task.due ? daysBetween(t, task.due) : 9999;
-    const taskInRange = (taskDueIn <= 7 && taskDueIn >= 0) || taskDueIn < 0;
+    const taskInRange = (taskDueIn <= 15 && taskDueIn >= 0) || taskDueIn < 0;
     if(taskInRange && task.due){
       task.steps.forEach(s => {
         const key = s.id + '|' + task.due;
@@ -1551,7 +1554,7 @@ function renderUpcoming() {
       if(!s.due) return;
       if(s.due === task.due && taskInRange) return;
       const sd = daysBetween(t, s.due);
-      if(sd > 7 && sd >= 0) return;
+      if(sd > 15 && sd >= 0) return;
       const key = s.id + '|' + s.due;
       if(seenKeys.has(key)) return;
       items.push({ task, step: s, date: s.due, dueSource: 'step' });
@@ -1578,19 +1581,32 @@ function renderUpcoming() {
   Object.values(groups).forEach(sortGroup);
 
   if(!items.length) {
-    $('#upcoming').innerHTML = emptyState('近期', '未来7天没有安排工作，去新建一个吧');
+    $('#upcoming').innerHTML = emptyState('近期', '未来15天没有安排工作，去新建一个吧');
     return;
+  }
+  // 默认展开：第一个有内容的日期（逾期优先，否则最近的未来日期）
+  // 如果 expandedUpcoming 是空（首次渲染或刚刷新），自动展开第一个
+  if(expandedUpcoming.size === 0){
+    if(overdue.length) expandedUpcoming.add('__overdue__');
+    else {
+      for(let i=0; i<=15; i++){
+        const d = addDays(t, i);
+        if(groups[d]){ expandedUpcoming.add(d); break; }
+      }
+    }
   }
   let html = '';
   if(overdue.length) {
-    html += '<div class="day-group"><div class="day-head" style="background:var(--p0-bg)"><div class="dnum" style="color:var(--p0)">!</div><div class="dinfo" style="color:var(--p0)"><div>已逾期 · 需尽快处理</div><div class="dweek">' + overdue.length + ' 个步骤</div></div><span class="dcnt" style="background:var(--p0);color:#fff;border-color:var(--p0)">' + overdue.length + '</span></div><div class="day-body">' + renderDayBody(overdue, wsMap) + '</div></div>';
+    const exp = expandedUpcoming.has('__overdue__');
+    html += '<div class="day-group"><div class="day-head ' + (exp?'':'collapsed') + '" style="background:var(--p0-bg)" data-toggle-day="__overdue__"><div class="dnum" style="color:var(--p0)">' + (exp?'▾':'▸') + '</div><div class="dinfo" style="color:var(--p0)"><div>已逾期 · 需尽快处理</div><div class="dweek">' + overdue.length + ' 个步骤</div></div><span class="dcnt" style="background:var(--p0);color:#fff;border-color:var(--p0)">' + overdue.length + '</span></div><div class="day-body" ' + (exp?'':'hidden') + '>' + renderDayBody(overdue, wsMap) + '</div></div>';
   }
-  for(let i=0; i<=7; i++){
+  for(let i=0; i<=15; i++){
     const d = addDays(t, i);
     if(!groups[d]) continue;
     const date = parse(d);
     const week = ['日','一','二','三','四','五','六'][date.getDay()];
-    html += '<div class="day-group"><div class="day-head ' + (i===0?'today':'') + '"><div class="dnum">' + date.getDate() + '</div><div class="dinfo"><div>' + (i===0?'今天':i===1?'明天':formatChineseDate(d)) + '</div><div class="dweek">周' + week + ' · ' + groups[d].length + ' 步</div></div><span class="dcnt">' + groups[d].length + '</span></div><div class="day-body">' + renderDayBody(groups[d], wsMap) + '</div></div>';
+    const exp = expandedUpcoming.has(d);
+    html += '<div class="day-group"><div class="day-head ' + (i===0?'today':'') + ' ' + (exp?'':'collapsed') + '" data-toggle-day="' + d + '"><div class="dnum">' + (exp?'▾':'▸') + '</div><div class="dinfo"><div>' + (i===0?'今天':i===1?'明天':formatChineseDate(d)) + '</div><div class="dweek">周' + week + ' · ' + groups[d].length + ' 步</div></div><span class="dcnt">' + groups[d].length + '</span></div><div class="day-body" ' + (exp?'':'hidden') + '>' + renderDayBody(groups[d], wsMap) + '</div></div>';
   }
   $('#upcoming').innerHTML = html;
 }
@@ -1981,6 +1997,26 @@ function bindTabs(){
     }
   });
   on($('#upcoming'), 'click', e => {
+    // 日期 header 点击折叠/展开
+    const dayHead = e.target.closest('[data-toggle-day]');
+    if(dayHead){
+      const key = dayHead.dataset.toggleDay;
+      const group = dayHead.closest('.day-group');
+      const body = group.querySelector('.day-body');
+      const isExp = expandedUpcoming.has(key);
+      if(isExp){
+        expandedUpcoming.delete(key);
+        body.setAttribute('hidden', '');
+        dayHead.classList.add('collapsed');
+        dayHead.querySelector('.dnum').textContent = '▸';
+      } else {
+        expandedUpcoming.add(key);
+        body.removeAttribute('hidden');
+        dayHead.classList.remove('collapsed');
+        dayHead.querySelector('.dnum').textContent = '▾';
+      }
+      return;
+    }
     // 步骤勾选/取消 → 划掉 + 移到最下面（排序逻辑在 sortGroup 里）
     const stepToggle = e.target.closest('[data-step-toggle]');
     if(stepToggle){
