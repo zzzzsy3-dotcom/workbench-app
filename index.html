@@ -219,18 +219,30 @@
   .tc-sel input { width: 18px; height: 18px; accent-color: var(--brand); cursor: pointer; margin: 0; }
   .task-card.sel { box-shadow: 0 0 0 2px var(--brand), var(--card-shadow); }
   /* 批量操作栏 */
+  /* 批量操作栏 - 灵动岛悬浮胶囊 */
   .batch-bar {
-    position: fixed; left: 0; right: 0; bottom: 0; z-index: 120;
-    background: #fff; border-top: 1px solid var(--line); box-shadow: 0 -6px 24px rgba(15,23,42,.12);
-    display: none; padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
+    position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%);
+    z-index: 120;
+    background: rgba(255,255,255,0.92); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--line);
+    border-radius: 22px;
+    box-shadow: 0 10px 40px rgba(15,23,42,0.15), 0 2px 8px rgba(15,23,42,0.08);
+    padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+    display: none; flex-direction: column; gap: 8px;
+    width: auto; max-width: calc(100vw - 24px);
+    transition: box-shadow .2s;
   }
-  .batch-bar.show { display: block; }
+  .batch-bar.show { display: flex; animation: pillPop .25s cubic-bezier(.34, 1.56, .64, 1); }
+  @keyframes pillPop {
+    from { transform: translateX(-50%) translateY(20px); opacity: 0; }
+    to { transform: translateX(-50%) translateY(0); opacity: 1; }
+  }
   .batch-bar .bb-row { display: flex; align-items: center; gap: 8px; }
   .batch-bar .bb-actions { display: flex; gap: 6px; flex-wrap: wrap; padding-top: 8px; margin-top: 4px; border-top: 0.5px dashed var(--line); }
-  .bb-act { font-size: 13px; font-weight: 500; padding: 6px 14px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--ink-2); cursor: pointer; white-space: nowrap; transition: all .12s; }
-  .bb-act:hover { border-color: var(--brand); color: var(--brand); }
-  .bb-act.active { background: var(--brand-bg); border-color: var(--brand); color: var(--brand); font-weight: 600; }
-  .bb-panel { background: var(--brand-bg); border: 1px solid #B5D4F4; border-radius: 8px; padding: 10px; margin-top: 6px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .bb-act { font-size: 13px; font-weight: 500; padding: 6px 14px; border: 1px solid var(--line); border-radius: 999px; background: #fff; color: var(--ink-2); cursor: pointer; white-space: nowrap; transition: all .12s; }
+  .bb-act:hover { border-color: var(--brand); color: var(--brand); background: var(--brand-bg); }
+  .bb-act.active { background: var(--brand); border-color: var(--brand); color: #fff; font-weight: 600; }
+  .bb-panel { background: var(--brand-bg); border: 1px solid #B5D4F4; border-radius: 14px; padding: 10px 12px; margin-top: 6px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
   .bb-panel[hidden] { display: none; }
   .bb-panel label { font-size: 12px; color: var(--ink-2); white-space: nowrap; }
   .bb-panel input[type=number] { width: 56px; height: 32px; border: 1px solid var(--line); border-radius: 7px; padding: 0 8px; font-size: 15px; background: #fff; }
@@ -251,6 +263,10 @@
   .tc-progress .bar { flex: 1; height: 6px; background: var(--line-2); border-radius: 999px; overflow: hidden; }
   .tc-progress .fill { height: 100%; border-radius: 999px; transition: width .3s; }
   .tc-progress .num { font-size: 12px; font-weight: 700; color: var(--ink-2); min-width: 32px; text-align: right; }
+  .tc-done-btn { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border: 1px solid var(--line); border-radius: 999px; background: #fff; color: var(--ink-3); font-size: 12px; font-weight: 600; cursor: pointer; transition: all .12s; flex-shrink: 0; }
+  .tc-done-btn:hover { border-color: var(--ok); color: var(--ok); }
+  .tc-done-btn.done { background: var(--ok); border-color: var(--ok); color: #fff; }
+  .tc-done-btn svg { width: 13px; height: 13px; }
 
   /* 步骤列表 */
   .steps { display: flex; flex-direction: column; gap: 4px; }
@@ -1339,6 +1355,10 @@ function renderTaskCard(x) {
       <div class="tc-progress">
         <div class="bar"><div class="fill" style="width:${prog.pct}%;background:${done?'var(--ok)':PCOLOR[x.priority]}"></div></div>
         <span class="num">${prog.done}/${prog.total}</span>
+        <button class="tc-done-btn ${x.taskDone?'done':''}" data-task-done="${x.id}" title="${x.taskDone?'标记为未完成':'标记为完成'}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+          <span>${x.taskDone?'已完成':'标记完成'}</span>
+        </button>
       </div>
       <div class="steps">${stepsHtml}</div>
     </div>`;
@@ -1583,7 +1603,11 @@ function taskProgress(x){
   const done = x.steps.filter(s=>s.done).length;
   return { done, total, pct: total?Math.round(done/total*100):0 };
 }
-function allDone(x){ const p=taskProgress(x); return p.total>0 && p.done===p.total; }
+function allDone(x){
+  if(x.taskDone) return true;
+  const p=taskProgress(x);
+  return p.total>0 && p.done===p.total;
+}
 function formatChineseDate(s){
   const d=parse(s); return (d.getMonth()+1)+'月'+d.getDate()+'日';
 }
@@ -1790,9 +1814,23 @@ function bindTabs(){
       const t = tasks.find(x => x.id === restore.dataset.restore);
       if(!t) return;
       t.steps.forEach(s => s.done = false);
+      t.taskDone = false;
       save(K_TASKS, tasks);
       renderAll();
       toast('已恢复为未完成：'+t.title, 'ok');
+      return;
+    }
+    // 大任务单独完成/恢复
+    const taskDone = e.target.closest('[data-task-done]');
+    if(taskDone){
+      e.stopPropagation();
+      const t = tasks.find(x => x.id === taskDone.dataset.taskDone);
+      if(!t) return;
+      t.taskDone = !t.taskDone;
+      if(t.taskDone) t.steps.forEach(s => s.done = true); // 标记完成时所有步骤也完成
+      save(K_TASKS, tasks);
+      renderAll();
+      toast(t.taskDone ? '✓ 标记完成：'+t.title : '已恢复：'+t.title, 'ok');
       return;
     }
   });
@@ -2342,7 +2380,7 @@ function saveWs(){
         return;
       } else {
         // 显示中的同名网站 → 提示已存在，切换过去
-        toast('已有同名网站「'+sameDomain.name+'」正在使用，已切换到该网站','err');
+        toast('已有同名网站（域名 '+sameDomain.domain+'）正在使用，已切换到该网站','err');
         activeWs = sameDomain.id; save(K_ACTIVE_WS, activeWs);
         editingWsId = null;
         closeAllModals();
