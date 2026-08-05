@@ -198,13 +198,20 @@
     display: none; padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
   }
   .batch-bar.show { display: block; }
-  .batch-bar .bb-inner { display: flex; align-items: center; gap: 10px; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 2px; }
+  .batch-bar .bb-row { display: flex; align-items: center; gap: 8px; }
+  .batch-bar .bb-ops { display: flex; flex-direction: column; gap: 10px; padding-top: 10px; margin-top: 10px; border-top: 1px dashed var(--line); }
+  .batch-bar .bb-ops[hidden] { display: none; }
+  .bb-op { background: var(--line-2); border-radius: 10px; padding: 8px 10px; }
+  .bb-op.danger { background: #FEE2E2; }
+  .bb-op-title { font-size: 12px; font-weight: 700; color: var(--ink-2); margin-bottom: 6px; letter-spacing: .3px; }
+  .bb-op.danger .bb-op-title { color: var(--p0); }
+  .bb-op-body { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 4px; }
+  .bb-op-body:last-child { margin-bottom: 0; }
+  .bb-op-body label { font-size: 12px; color: var(--ink-2); white-space: nowrap; }
+  .bb-op-body input[type=number] { width: 64px; height: 32px; border: 1px solid var(--line); border-radius: 8px; padding: 0 8px; font-size: 16px; background:#fff; }
+  .bb-op-body input[type=date] { height: 32px; border: 1px solid var(--line); border-radius: 8px; padding: 0 6px; font-size: 16px; background:#fff; }
+  .bb-op-body select { height: 32px; border: 1px solid var(--line); border-radius: 8px; padding: 0 6px; font-size: 14px; background:#fff; max-width: 140px; }
   .bb-count { font-weight: 700; font-size: 14px; color: var(--brand-d); white-space: nowrap; }
-  .bb-sep { width: 1px; height: 24px; background: var(--line); flex-shrink: 0; }
-  .bb-group { display: flex; align-items: center; gap: 6px; white-space: nowrap; flex-shrink: 0; }
-  .bb-group label { font-size: 12px; color: var(--ink-2); }
-  .bb-group input[type=number] { width: 56px; height: 32px; border: 1px solid var(--line); border-radius: 8px; padding: 0 8px; font-size: 16px; }
-  .bb-group input[type=date] { height: 32px; border: 1px solid var(--line); border-radius: 8px; padding: 0 6px; font-size: 16px; }
   .bb-mini { height: 32px; padding: 0 10px; border: 1px solid var(--line); border-radius: 8px; background: #fff; font-size: 13px; font-weight: 600; cursor: pointer; color: var(--ink); white-space: nowrap; }
   .bb-mini:hover { background: var(--line-2); }
   .bb-mini.p0 { color: var(--p0); border-color: var(--p0-bg); }
@@ -212,7 +219,6 @@
   .bb-mini.p2 { color: #1E40AF; border-color: var(--p2-bg); }
   .bb-mini.danger { color: var(--p0); border-color: var(--p0-bg); }
   .bb-mini.primary { background: var(--brand); color: #fff; border-color: var(--brand); }
-  .bb-select { height: 32px; border: 1px solid var(--line); border-radius: 8px; padding: 0 6px; font-size: 13px; max-width: 140px; }
 
   /* 进度条 */
   .tc-progress { display: flex; align-items: center; gap: 8px; }
@@ -723,47 +729,58 @@
 
 <!-- 批量操作栏（必须在 script 之前，否则 bindTabs 找不到节点会抛错） -->
 <div class="batch-bar" id="batchBar">
-  <div class="bb-inner">
+  <!-- 行1：选择状态 + 快捷全选/取消 -->
+  <div class="bb-row">
     <span class="bb-count" id="bbCount">已选 0 项</span>
     <button class="bb-mini" id="bbSelectAll">全选本页</button>
     <button class="bb-mini" id="bbClear">取消选择</button>
-    <div class="bb-sep"></div>
-    <div class="bb-group">
-      <label>📅 顺延</label>
-      <input type="number" id="bbShift" value="3" min="-365" max="365">
-      <label>天</label>
-      <button class="bb-mini" id="bbShiftApply">应用</button>
+    <button class="bb-mini" id="bbToggleOps">⚙ 更多操作 ▾</button>
+  </div>
+  <!-- 行2：操作面板（默认折叠，点击"更多操作"展开） -->
+  <div class="bb-ops" id="bbOps" hidden>
+    <div class="bb-op">
+      <div class="bb-op-title">📅 改截止日</div>
+      <div class="bb-op-body">
+        <label>顺延</label><input type="number" id="bbShift" value="3" min="-365" max="365"><label>天</label>
+        <button class="bb-mini" id="bbShiftApply">应用</button>
+      </div>
+      <div class="bb-op-body">
+        <label>或设到</label><input type="date" id="bbDate">
+        <button class="bb-mini" id="bbDateApply">应用</button>
+      </div>
     </div>
-    <div class="bb-group">
-      <label>📅 设到</label>
-      <input type="date" id="bbDate">
-      <button class="bb-mini" id="bbDateApply">应用</button>
+    <div class="bb-op">
+      <div class="bb-op-title">⚡ 改优先级</div>
+      <div class="bb-op-body">
+        <button class="bb-mini p0" data-bp="P0">P0 紧急</button>
+        <button class="bb-mini p1" data-bp="P1">P1 重要</button>
+        <button class="bb-mini p2" data-bp="P2">P2 一般</button>
+      </div>
     </div>
-    <div class="bb-sep"></div>
-    <div class="bb-group">
-      <label>⚡ 优先级</label>
-      <button class="bb-mini p0" data-bp="P0">P0</button>
-      <button class="bb-mini p1" data-bp="P1">P1</button>
-      <button class="bb-mini p2" data-bp="P2">P2</button>
+    <div class="bb-op">
+      <div class="bb-op-title">📂 移到 / 复制</div>
+      <div class="bb-op-body">
+        <label>目标网站</label>
+        <select class="bb-select" id="bbWebsite"></select>
+        <button class="bb-mini primary" id="bbMove">移动</button>
+        <button class="bb-mini" id="bbCopy">复制</button>
+      </div>
     </div>
-    <div class="bb-sep"></div>
-    <div class="bb-group">
-      <label>📂 到</label>
-      <select class="bb-select" id="bbWebsite"></select>
-      <button class="bb-mini primary" id="bbMove">移动</button>
-      <button class="bb-mini" id="bbCopy">复制</button>
+    <div class="bb-op">
+      <div class="bb-op-title">🔁 步骤排期</div>
+      <div class="bb-op-body">
+        <label>起始</label><input type="date" id="bbStepStart">
+        <label>每步 +</label><input type="number" id="bbStepGap" value="1" min="0" max="30" style="width:56px">
+        <label>天</label>
+        <button class="bb-mini" id="bbStepApply">应用</button>
+      </div>
     </div>
-    <div class="bb-sep"></div>
-    <div class="bb-group">
-      <label>🔁 步骤 起始</label>
-      <input type="date" id="bbStepStart">
-      <label>每步 +</label>
-      <input type="number" id="bbStepGap" value="1" min="0" max="30" style="width:50px">
-      <label>天</label>
-      <button class="bb-mini" id="bbStepApply">应用</button>
+    <div class="bb-op danger">
+      <div class="bb-op-title">🗑 危险操作</div>
+      <div class="bb-op-body">
+        <button class="bb-mini danger" id="bbDelete">删除选中</button>
+      </div>
     </div>
-    <div class="bb-sep"></div>
-    <button class="bb-mini danger" id="bbDelete">🗑 删除</button>
   </div>
 </div>
 
@@ -1549,8 +1566,9 @@ function bindTabs(){
     const sel = e.target.closest('[data-select]');
     if(sel){ e.preventDefault(); const id = sel.dataset.select; const has = selectedTasks.has(id);
       if(has) selectedTasks.delete(id); else selectedTasks.add(id);
-      // 同步 checkbox 自身的 checked 状态（不重渲染整卡，避免抖动）
-      if(sel.type === 'checkbox') sel.checked = !has;
+      // 同步 checkbox checked：不管 sel 是 input 还是 label，都找到 input 设置
+      const cb = sel.matches('input[type="checkbox"]') ? sel : sel.querySelector('input[type="checkbox"]');
+      if(cb) cb.checked = !has;
       const card = sel.closest('.task-card'); if(card) card.classList.toggle('sel', !has);
       renderBatchBar(); return; }
     const edit = e.target.closest('[data-edit]');
@@ -1606,6 +1624,14 @@ function bindTabs(){
   on($('#bbCopy'), 'click', () => batchCopyWebsite($('#bbWebsite').value));
   on($('#bbStepApply'), 'click', () => { const s = $('#bbStepStart').value; const g = parseInt($('#bbStepGap').value,10)||0; batchStepSchedule(s, g); });
   on($('#bbDelete'), 'click', batchDeleteSelected);
+  // 批量栏"更多操作"展开/折叠
+  on($('#bbToggleOps'), 'click', () => {
+    const ops = $('#bbOps');
+    const btn = $('#bbToggleOps');
+    const isHidden = ops.hasAttribute('hidden');
+    if(isHidden){ ops.removeAttribute('hidden'); btn.textContent = '⚙ 更多操作 ▴'; }
+    else { ops.setAttribute('hidden',''); btn.textContent = '⚙ 更多操作 ▾'; }
+  });
   onAll($$('#batchBar [data-bp]'), 'click', b => batchSetPriority(b.dataset.bp));
 
   // 批量导入模板
