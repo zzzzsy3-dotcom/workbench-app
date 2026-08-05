@@ -294,6 +294,8 @@
   .empty-state svg { width: 56px; height: 56px; margin: 0 auto 12px; display: block; opacity: .4; }
   .empty-state h4 { font-size: 16px; color: var(--ink-2); margin-bottom: 6px; }
   .empty-state p { font-size: 13.5px; }
+  /* empty-state 在 grid 容器里要跨整列居中 */
+  .task-grid > .empty-state, .board > .empty-state, .upcoming > .empty-state { grid-column: 1 / -1; }
 
   /* ===== 模态框 ===== */
   .modal-mask {
@@ -1425,12 +1427,14 @@ function bindStepEvents(){
 }
 
 /* 主Tab切换 */
-// 防御性 bind：DOM 缺失时不抛错（任何 addEventListener 都做存在性检查）
+// 防御性 bind：DOM 缺失时不抛错
+// onAll 把每个 el 包进箭头函数，保证 fn 收到的是 DOM 元素而非 Event
 function on(el, ev, fn){
   if(el) el.addEventListener(ev, fn);
 }
 function onAll(els, ev, fn){
-  if(els) els.forEach(el => el.addEventListener(ev, fn));
+  if(!els) return;
+  els.forEach(el => el.addEventListener(ev, (e) => fn(el, e)));
 }
 
 function bindTabs(){
