@@ -562,6 +562,31 @@
   </div>
 </div>
 
+<!-- 快速处理弹窗 -->
+<div class="modal-mask" id="quickModal">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-head">
+      <h3 id="quickTitle">处理任务</h3>
+      <button class="close" data-close>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="quick-meta" id="quickMeta" style="font-size:13px;color:var(--ink-2);margin-bottom:8px"></div>
+      <div id="quickSteps" style="display:flex;flex-direction:column;gap:8px"></div>
+      <div class="quick-actions" style="margin-top:14px;padding-top:14px;border-top:1px solid var(--line);display:flex;gap:8px;justify-content:space-between;align-items:center">
+        <button type="button" class="bb-mini" id="quickCheckAll">✓ 全勾</button>
+        <button type="button" class="bb-mini" id="quickUncheckAll">✗ 全取消</button>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" data-close>取消</button>
+      <button class="btn" id="quickEdit">完整编辑</button>
+      <button class="btn btn-primary" id="quickSave">保存</button>
+    </div>
+  </div>
+</div>
+
 <!-- 模态框：新建网站 -->
 <div class="modal-mask" id="wsModal">
   <div class="modal">
@@ -1522,8 +1547,11 @@ function bindTabs(){
   // 任务网格内事件
   on($('#taskGrid'), 'click', e => {
     const sel = e.target.closest('[data-select]');
-    if(sel){ e.preventDefault(); const id = sel.dataset.select; if(selectedTasks.has(id)) selectedTasks.delete(id); else selectedTasks.add(id);
-      const card = sel.closest('.task-card'); if(card) card.classList.toggle('sel', selectedTasks.has(id));
+    if(sel){ e.preventDefault(); const id = sel.dataset.select; const has = selectedTasks.has(id);
+      if(has) selectedTasks.delete(id); else selectedTasks.add(id);
+      // 同步 checkbox 自身的 checked 状态（不重渲染整卡，避免抖动）
+      if(sel.type === 'checkbox') sel.checked = !has;
+      const card = sel.closest('.task-card'); if(card) card.classList.toggle('sel', !has);
       renderBatchBar(); return; }
     const edit = e.target.closest('[data-edit]');
     const del = e.target.closest('[data-del]');
@@ -1534,15 +1562,15 @@ function bindTabs(){
   });
   // 看板/近期 点击 mini-card / up-item
   on($('#board'), 'click', e => {
-    const m = e.target.closest('[data-edit]'); if(m) openTaskModal(m.dataset.edit);
+    const m = e.target.closest('[data-edit]'); if(m) openQuickHandle(m.dataset.edit);
   });
   on($('#upcoming'), 'click', e => {
-    const m = e.target.closest('[data-edit]'); if(m) openTaskModal(m.dataset.edit);
+    const m = e.target.closest('[data-edit]'); if(m) openQuickHandle(m.dataset.edit);
   });
   // 今日项 处理按钮
   on($('#todayBox'), 'click', e => {
     const q = e.target.closest('[data-quick]');
-    if(q){ openTaskModal(q.dataset.quick); return; }
+    if(q){ openQuickHandle(q.dataset.quick); return; }
     const it = e.target.closest('[data-task]');
     if(it){ openTaskModal(it.dataset.task); }
   });
@@ -1713,6 +1741,56 @@ function readFormSteps(){
     skippable: row.querySelector('.sr-skip').checked
   })).filter(s => s.name);
 }
+
+/* ---------- 快速处理弹窗：只改步骤 done 状态 ---------- */
+let quickEditingId = null;
+function openQuickHandle(taskId){
+  const t = tasks.find(x => x.id === taskId);
+  if(!t){ toast('任务不存在','err'); return; }
+  quickEditingId = taskId;
+  $('#quickTitle').textContent = '处理 · ' + t.title;
+  const ws = websites.find(w => w.id === t.websiteId);
+  const doneN = t.steps.filter(s => s.done).length;
+  $('#quickMeta').innerHTML = `
+    <span class="tag tag-${t.priority.toLowerCase()}">${t.priority} ${PNAME[t.priority]}</span>
+    ${t.due?`<span class="tag tag-due">${formatShort(t.due)}</span>`:''}
+    ${ws?`<span style="color:var(--ink-3)">${escapeHtml(ws.domain||ws.name)}</span>`:''}
+    <span style="color:var(--ink-3)">${doneN}/${t.steps.length} 已完成</span>
+  `;
+  $('#quickSteps').innerHTML = t.steps.map(s => `
+    <label class="quick-step ${s.done?'done':''}" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;cursor:pointer;background:${s.done?'var(--line-2)':'#fff'};transition:all .12s">
+      <input type="checkbox" data-qsid="${s.id}" ${s.done?'checked':''} style="width:18px;height:18px;accent-color:var(--brand);margin:0;cursor:pointer">
+      <span style="flex:1;font-size:14px;${s.done?'text-decoration:line-through;color:var(--ink-3)':''}">${escapeHtml(s.name)}</span>
+      ${s.skippable?'<span style="font-size:10.5px;font-weight:700;padding:2px 6px;border-radius:5px;background:var(--line-2);color:var(--ink-3);white-space:nowrap">可跳过</span>':''}
+      ${s.due?`<span style="font-size:11px;font-weight:600;padding:2px 7px;border-radius:5px;background:#DBEAFE;color:#1D4ED8;white-space:nowrap;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace">${formatShort(s.due)}</span>`:''}
+    </label>
+  `).join('') || '<div style="padding:20px;text-align:center;color:var(--ink-3)">这个任务没有步骤</div>';
+  $('#quickModal').classList.add('show');
+}
+function saveQuickHandle(){
+  const t = tasks.find(x => x.id === quickEditingId);
+  if(!t){ return; }
+  const checks = {};
+  $$('#quickSteps [data-qsid]').forEach(cb => { checks[cb.dataset.qsid] = cb.checked; });
+  t.steps.forEach(s => { if(checks[s.id] !== undefined) s.done = checks[s.id]; });
+  save(K_TASKS, tasks);
+  $('#quickModal').classList.remove('show');
+  renderAll();
+  const doneN = t.steps.filter(s => s.done).length;
+  toast(`已保存 · ${doneN}/${t.steps.length} 完成`, 'ok');
+}
+on($('#quickSave'), 'click', saveQuickHandle);
+on($('#quickEdit'), 'click', () => { const id = quickEditingId; $('#quickModal').classList.remove('show'); if(id) openTaskModal(id); });
+on($('#quickCheckAll'), 'click', () => $$('#quickSteps [data-qsid]').forEach(cb => { cb.checked = true; cb.closest('.quick-step').classList.add('done'); cb.closest('.quick-step').querySelector('span').style.cssText = 'flex:1;font-size:14px;text-decoration:line-through;color:var(--ink-3)'; }));
+on($('#quickUncheckAll'), 'click', () => $$('#quickSteps [data-qsid]').forEach(cb => { cb.checked = false; cb.closest('.quick-step').classList.remove('done'); cb.closest('.quick-step').querySelector('span').style.cssText = 'flex:1;font-size:14px'; }));
+on($('#quickSteps'), 'change', e => {
+  if(e.target.matches('[data-qsid]')){
+    const cb = e.target;
+    cb.closest('.quick-step').classList.toggle('done', cb.checked);
+    const span = cb.closest('.quick-step').querySelector('span');
+    if(span) span.style.cssText = cb.checked ? 'flex:1;font-size:14px;text-decoration:line-through;color:var(--ink-3)' : 'flex:1;font-size:14px';
+  }
+});
 // 模板填充
 on($('#fTemplate'), 'change', e => {
   const id = e.target.value;
