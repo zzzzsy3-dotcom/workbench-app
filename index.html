@@ -733,7 +733,7 @@ const K_TASKS = PREFIX + 'tasks';
 const K_TEMPLATES = PREFIX + 'templates';
 const K_SAMPLE = PREFIX + 'sample_loaded';
 const SAMPLE_VERSION = 'v2'; // 改了示例网站命名后递增
-const TPL_VERSION = 'v4';
+const TPL_VERSION = 'v5'; // v5: 清除 v2 残留旧模板名
 const K_ACTIVE_WS = PREFIX + 'active_ws';
 const K_SYNC = PREFIX + 'sync_cfg';
 const K_SYNC_META = PREFIX + 'sync_meta';
@@ -947,9 +947,15 @@ function seedTemplates() {
       {id:uid(),name:'上线清单核对',skippable:false},
     ]},
   ];
-  // 增量合并：保留用户自建模板，预置模板用最新定义覆盖（不会清掉你存过的模板）
+  // 增量合并：保留用户自建模板，预置模板用最新定义覆盖
+  // 同时清除历史版本残留的旧预置模板名（v2 的 6 个旧名字）
+  const LEGACY_PRESET_NAMES = new Set([
+    '建站标准流程','产品页上新','博客文章发布','支付通道接入','404死链检测','文章信息增量注入'
+  ]);
   const presetNames = new Set(presets.map(p=>p.name));
-  const userOwned = load(K_TEMPLATES, []).filter(t => !presetNames.has(t.name));
+  const userOwned = load(K_TEMPLATES, []).filter(t => 
+    !presetNames.has(t.name) && !LEGACY_PRESET_NAMES.has(t.name)
+  );
   save(K_TEMPLATES, userOwned.concat(presets));
   localStorage.setItem(PREFIX + 'tpl_version', TPL_VERSION);
   return true;
