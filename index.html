@@ -1070,48 +1070,31 @@ let remoteSha = load(K_SYNC_SHA, null); // 单独持久化，刷新后 push 也�
 function renderToday() {
   const t = todayStr();
   const wsMap = {}; websites.forEach(w=>wsMap[w.id]=w);
-  // 收集今天要处理的"步骤项"——混合模式
-  // 1. 任务级 due 在今天/逾期/近3天 → 列出该任务所有未完成步骤
-  // 2. 步骤级 due 在今天/逾期/近3天，且任务整体 due 不在范围内 → 只列那个步骤
-  const items = [];
-  const seenStepIds = new Set(); // step.id 去重
+  // 混合模式（任务级粒度）：
+  // 1. task.due 在 ≤3 天 → 列出整个任务
+  // 2. step.due 在 ≤3 天，且 task.due 不在范围内 → 也列出整个任务（去重）
+  const taskMap = new Map();
   tasks.forEach(task => {
     if(allDone(task)) return;
     const taskDueIn = task.due ? daysBetween(t, task.due) : 9999;
-    const taskDueOver = taskDueIn <= 3;
-    // 任务级到期 → 所有未完成步骤
-    if(taskDueOver){
-      task.steps.forEach(s => {
-        if(s.done) return;
-        if(seenStepIds.has(s.id)) return;
-        items.push({ task, step: s, due: task.due, dueSource: 'task' });
-        seenStepIds.add(s.id);
-      });
-    }
-    // 步骤级到期（任务整体没到期）→ 只列那个步骤
-    if(!taskDueOver){
-      task.steps.forEach(s => {
-        if(s.done || !s.due) return;
-        if(daysBetween(t, s.due) > 3) return;
-        if(seenStepIds.has(s.id)) return;
-        items.push({ task, step: s, due: s.due, dueSource: 'step' });
-        seenStepIds.add(s.id);
-      });
-    }
+    const taskInRange = taskDueIn <= 3;
+    if(taskInRange){ taskMap.set(task.id, { task, due: task.due, dueSource: 'task' }); return; }
+    // 任务整体不在范围，但步骤可能单独到期
+    const stepInRange = task.steps.some(s => !s.done && s.due && daysBetween(t, s.due) <= 3);
+    if(stepInRange) taskMap.set(task.id, { task, due: task.due || '', dueSource: 'step' });
   });
-  // 排序：逾期在前，再按优先级，再按日期
+  const items = [...taskMap.values()];
   items.sort((a,b) => {
-    const ao = daysBetween(t, a.due) < 0 ? 0 : 1;
-    const bo = daysBetween(t, b.due) < 0 ? 0 : 1;
+    const ao = (a.due && daysBetween(t, a.due) < 0) ? 0 : 1;
+    const bo = (b.due && daysBetween(t, b.due) < 0) ? 0 : 1;
     if(ao !== bo) return ao - bo;
     const pr = {P0:0, P1:1, P2:2};
     if(pr[a.task.priority] !== pr[b.task.priority]) return pr[a.task.priority] - pr[b.task.priority];
-    return a.due.localeCompare(b.due);
+    return (a.due||'9999').localeCompare(b.due||'9999');
   });
-
-  const over = items.filter(x => daysBetween(t, x.due) < 0).length;
-  const todayN = items.filter(x => daysBetween(t, x.due) === 0).length;
-  const soon = items.filter(x => daysBetween(t, x.due) > 0).length;
+  const over = items.filter(x => x.due && daysBetween(t, x.due) < 0).length;
+  const todayN = items.filter(x => x.due && daysBetween(t, x.due) === 0).length;
+  const soon = items.filter(x => x.due && daysBetween(t, x.due) > 0).length;
 
   let html = `
     <div class="today-head">
@@ -1133,29 +1116,9 @@ function renderToday() {
       棒！近期没有逾期或紧急的工作，可以去看看全部工作内容。
     </div>`;
   } else {
-    html += '<div class="today-list">';
-    items.forEach(({ task, step, due, dueSource }) => {
-      const ws = wsMap[task.websiteId];
-      const r = relDue(due);
-      html += `
-        <div class="today-item ${r.cls==='over'?'over':''}" data-task="${task.id}" data-step-id="${step.id}">
-          <div class="pmark" style="background:${PCOLOR[task.priority]}"></div>
-          <button class="t-step-check" data-step-toggle="${step.id}" data-step-task="${task.id}" title="勾选完成">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-          </button>
-          <div class="info">
-            <div class="t-step-name">${escapeHtml(step.name)}</div>
-            <div class="t-meta">
-              <span class="t-task-title">${escapeHtml(task.title)}</span>
-              ${ws?`<span class="ws">${escapeHtml(ws.domain||ws.name)}</span>`:''}
-              <span class="src-tag ${dueSource}">${dueSource==='task'?'任务到期':'步骤到期'}</span>
-            </div>
-          </div>
-          <span class="due ${r.cls}">${r.label}</span>
-          <button class="icon-btn" data-edit-task="${task.id}" title="编辑任务">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
-          </button>
-        </div>`;
+    html += '<div class="today-cards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px">';
+    items.forEach(({ task, due, dueSource }) => {
+      html += renderTaskCard(task);
     });
     html += '</div>';
   }
@@ -1645,14 +1608,19 @@ function bindTabs(){
   });
   // 任务网格内事件
   on($('#taskGrid'), 'click', e => {
-    const sel = e.target.closest('[data-select]');
-    if(sel){ e.preventDefault(); const id = sel.dataset.select; const has = selectedTasks.has(id);
+    // 批量选择：点击 .tc-sel 容器（label 或 input），找里面的 checkbox
+    const tcSel = e.target.closest('.tc-sel');
+    if(tcSel){
+      e.preventDefault();
+      const cb = tcSel.querySelector('input[type="checkbox"]');
+      if(!cb) return;
+      const id = cb.dataset.select;
+      const has = selectedTasks.has(id);
       if(has) selectedTasks.delete(id); else selectedTasks.add(id);
-      // 同步 checkbox checked：不管 sel 是 input 还是 label，都找到 input 设置
-      const cb = sel.matches('input[type="checkbox"]') ? sel : sel.querySelector('input[type="checkbox"]');
-      if(cb) cb.checked = !has;
-      const card = sel.closest('.task-card'); if(card) card.classList.toggle('sel', !has);
-      renderBatchBar(); return; }
+      cb.checked = !has;
+      const card = tcSel.closest('.task-card'); if(card) card.classList.toggle('sel', !has);
+      renderBatchBar(); return;
+    }
     const edit = e.target.closest('[data-edit]');
     const del = e.target.closest('[data-del]');
     const tpl = e.target.closest('[data-tpl]');
