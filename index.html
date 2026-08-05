@@ -638,9 +638,12 @@
     </div>
     <div class="modal-body" id="tplLibBody"></div>
     <div class="modal-foot">
+      <button class="btn" id="tplImportBatch">📋 批量导入模板</button>
       <button class="btn" data-close>关闭</button>
       <button class="btn btn-primary" id="tplAddNew">+ 新建空模板</button>
     </div>
+    <!-- 隐藏的批量导入文件选择 -->
+    <input type="file" id="tplImportBatchFile" accept="application/json,.json" style="display:none">
   </div>
 </div>
 
@@ -1502,11 +1505,11 @@ function bindTabs(){
   on($('#syncDisconnect'), 'click', disconnectSync);
   // 模态框关闭
   onAll($$('[data-close]'), 'click', closeAllModals);
-  onAll($$('.modal-mask'), 'click', e => { if(e.target===e.currentTarget) closeAllModals(); });
+  onAll($$('.modal-mask'), 'click', (el, ev) => { if(ev.target===ev.currentTarget) closeAllModals(); });
   // 优先级选择
   onAll($$('#fPriority .seg-opt'), 'click', b => {
     $$('#fPriority .seg-opt').forEach(x=>x.classList.remove('active'));
-    b.target.classList.add('active');
+    b.classList.add('active');
   });
   // 任务保存
   on($('#taskSave'), 'click', saveTask);
@@ -1520,6 +1523,59 @@ function bindTabs(){
   on($('#bbMove'), 'click', () => batchMoveWebsite($('#bbWebsite').value));
   on($('#bbDelete'), 'click', batchDeleteSelected);
   onAll($$('#batchBar [data-bp]'), 'click', b => batchSetPriority(b.dataset.bp));
+
+  // 批量导入模板
+  on($('#tplImportBatch'), 'click', () => $('#tplImportBatchFile').click());
+  on($('#tplImportBatchFile'), 'change', importTemplatesBatch);
+}
+
+/* 批量导入模板：JSON 格式支持两种
+   1) 直接是模板数组：[ {id, name, title, priority, steps:[...]} ]
+   2) 整个 data.json：{version, websites, tasks, templates:[...]} —— 抽出 templates
+   导入策略：跳过 LEGACY 黑名单名字，其余追加到 templates 末尾 */
+function importTemplatesBatch(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      let raw = JSON.parse(reader.result);
+      let incoming = Array.isArray(raw) ? raw : (raw.templates || []);
+      if(!incoming.length) throw new Error('JSON 里没有找到模板数组');
+      const LEGACY = new Set(['建站标准流程','产品页上新','博客文章发布','支付通道接入','404死链检测','文章信息增量注入']);
+      const existNames = new Set(templates.map(t => t.name));
+      const added = [];
+      const skipped = [];
+      incoming.forEach(t => {
+        if(!t || !t.name) { skipped.push('（无名字的条目）'); return; }
+        if(LEGACY.has(t.name)) { skipped.push(t.name); return; }
+        if(existNames.has(t.name)) { skipped.push(t.name + '（已存在）'); return; }
+        // 给缺失字段兜底
+        const tpl = {
+          id: t.id || uid(),
+          name: t.name,
+          title: t.title || t.name,
+          priority: t.priority || 'P2',
+          steps: Array.isArray(t.steps) ? t.steps.map(s => ({
+            id: s.id || uid(),
+            name: s.name || '步骤',
+            skippable: !!s.skippable
+          })) : []
+        };
+        templates.push(tpl);
+        added.push(tpl.name);
+        existNames.add(tpl.name);
+      });
+      save(K_TEMPLATES, templates);
+      renderTplLib && renderTplLib();
+      const msg = `导入完成：新增 ${added.length} 个${skipped.length?'，跳过 '+skipped.length+' 个（'+skipped.slice(0,3).join('、')+(skipped.length>3?'…':'')+'）':''}`;
+      toast(msg, added.length ? 'ok' : 'err');
+    } catch(err){
+      toast('导入失败：'+err.message, 'err');
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
 }
 
 /* ---------- 任务模态 ---------- */
