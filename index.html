@@ -1128,7 +1128,7 @@ function renderToday() {
   // 2. step.due 在 ≤3 天，且 task.due 不在范围内 → 也列出整个任务（去重）
   const taskMap = new Map();
   tasks.forEach(task => {
-    if(allDone(task)) return;
+    if(allDone(task) || task.taskDone) return; // 保底加 taskDone 字段检查
     const taskDueIn = task.due ? daysBetween(t, task.due) : 9999;
     const taskInRange = taskDueIn <= 3;
     if(taskInRange){ taskMap.set(task.id, { task, due: task.due, dueSource: 'task' }); return; }
@@ -1281,9 +1281,9 @@ function renderTaskGrid() {
     if(pr[a.priority]!==pr[b.priority]) return pr[a.priority]-pr[b.priority];
     return (a.due||'9999').localeCompare(b.due||'9999');
   });
-  // 隐藏已完成：过滤掉 allDone
+  // 隐藏已完成：过滤掉 allDone 任务（保底加 taskDone 字段检查）
   if(!$('#showDone').checked){
-    wsTasks = wsTasks.filter(t => !allDone(t));
+    wsTasks = wsTasks.filter(t => !allDone(t) && !t.taskDone);
   }
   if(!wsTasks.length) {
     const msg = $('#showDone').checked
@@ -1477,7 +1477,7 @@ function batchDeleteSelected() {
 function renderBoard() {
   const wsMap = {}; websites.forEach(w=>wsMap[w.id]=w);
   const cols = { P0:[], P1:[], P2:[] };
-  tasks.forEach(t => { if(!allDone(t)) cols[t.priority]?.push(t); });
+  tasks.forEach(t => { if(!allDone(t) && !t.taskDone) cols[t.priority]?.push(t); });
   const pr = {P0:0,P1:1,P2:2};
   Object.values(cols).forEach(arr => arr.sort((a,b)=>{
     if(pr[a.priority]!==pr[b.priority]) return pr[a.priority]-pr[b.priority];
@@ -1522,7 +1522,7 @@ function renderUpcoming() {
   const items = [];
   const seenKeys = new Set();
   tasks.forEach(task => {
-    if(allDone(task)) return;
+    if(allDone(task) || task.taskDone) return; // 保底加 taskDone 字段检查
     const taskDueIn = task.due ? daysBetween(t, task.due) : 9999;
     const taskInRange = (taskDueIn <= 7 && taskDueIn >= 0) || taskDueIn < 0;
     if(taskInRange && task.due){
@@ -2185,7 +2185,6 @@ function saveTask(){
   const due = $('#fDue').value || '';
   const note = $('#fNote').value.trim();
   const steps = readFormSteps();
-  if(!steps.length){ toast('至少需要一个步骤','err'); return; }
   if(editingTaskId){
     const t = tasks.find(x=>x.id===editingTaskId);
     // 保留已存在步骤的done状态（按名称匹配）
