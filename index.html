@@ -1927,7 +1927,11 @@ function toast(msg, type='ok'){
 suppressSync = true;
 seedSampleData();
 seedTemplates();
+// 关键：seedSampleData 只写 localStorage 不更新全局变量，必须重新 load
+websites = load(K_WEBSITES, []);
+tasks = load(K_TASKS, []);
 templates = load(K_TEMPLATES, []);
+activeWs = load(K_ACTIVE_WS, null);
 suppressSync = false;
 // 如果activeWs失效，重置
 if(!activeWs || !websites.find(w=>w.id===activeWs)){ activeWs = websites[0]?.id || null; }
@@ -1938,10 +1942,15 @@ try { renderAll(); } catch(err){ console.error('renderAll failed:', err); }
 (async () => {
   if(syncCfg && syncCfg.token){
     if(websites.length === 0 && tasks.length === 0){
-      // 本地空 → 必须等 doPull 完成才能正确渲染
-      await doPull(false);
+      try {
+        await doPull(false);
+        if(websites.length === 0 && tasks.length === 0){
+          $('#taskGrid').innerHTML = '<div style="padding:48px 20px;text-align:center;color:#ef4444;font-size:14px;line-height:1.8">⚠️ 云端拉取后仍无数据。<br>请点右上角「云端同步」检查 Token / 仓库配置是否正确。</div>';
+        }
+      } catch(e){
+        $('#taskGrid').innerHTML = '<div style="padding:48px 20px;text-align:center;color:#ef4444;font-size:14px;line-height:1.8">⚠️ 云端拉取失败：'+e.message+'<br>请点右上角「云端同步」重试。</div>';
+      }
     } else {
-      // 本地有数据 → 静默拉取做增量合并（不 await，避免阻塞渲染）
       doPull(false).catch(()=>{});
     }
   }
