@@ -303,7 +303,13 @@
 
   /* ===== 优先级看板 ===== */
   .board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
-  .board-col { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 12px; box-shadow: var(--shadow); }
+  .step { cursor: grab; }
+  .step:active { cursor: grabbing; }
+  .step-row { cursor: grab; }
+  .step-row:active { cursor: grabbing; }
+  .board-col.drag-over { background: var(--brand-bg) !important; border-style: dashed !important; border-color: var(--brand) !important; }
+  .mini-card[draggable="true"] { cursor: grab; }
+  .mini-card[draggable="true"]:active { cursor: grabbing; }
   .board-col-head { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; padding: 0 4px; }
   .board-col-head .dot { width: 10px; height: 10px; border-radius: 3px; }
   .board-col-head h3 { font-size: 14px; font-weight: 700; }
@@ -1302,7 +1308,7 @@ function renderTaskCard(x) {
   const r = relDue(x.due);
   const sel = selectedTasks.has(x.id);
   let stepsHtml = x.steps.map(s => `
-    <div class="step ${s.done?'done':''}" data-step="${s.id}" data-task="${x.id}">
+    <div class="step ${s.done?'done':''}" data-step="${s.id}" data-task="${x.id}" draggable="true" data-drag-step="${s.id}" data-drag-step-task="${x.id}">
       <div class="step-check">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
       </div>
@@ -1484,7 +1490,7 @@ function renderBoard() {
     return (a.due||'9999').localeCompare(b.due||'9999');
   }));
   $('#board').innerHTML = ['P0','P1','P2'].map(p => `
-    <div class="board-col">
+    <div class="board-col" data-drop-priority="${p}">
       <div class="board-col-head">
         <span class="dot" style="background:${PCOLOR[p]}"></span>
         <h3>${p} ${PNAME[p]}</h3>
@@ -1499,7 +1505,7 @@ function miniCard(t, wsMap){
   const ws = wsMap[t.websiteId];
   const prog = taskProgress(t);
   const r = relDue(t.due);
-  return `<div class="mini-card ${allDone(t)?'done':''}" style="border-color:${PCOLOR[t.priority]}" data-edit="${t.id}">
+  return `<div class="mini-card ${allDone(t)?'done':''}" style="border-color:${PCOLOR[t.priority]}" data-edit="${t.id}" draggable="true" data-drag-task="${t.id}">
     <div class="mc-title">${escapeHtml(t.title)}</div>
     <div class="mc-meta">
       <span class="ws">${ws?escapeHtml(ws.domain||ws.name):'未分类'}</span>
@@ -1842,9 +1848,92 @@ function bindTabs(){
       renderTaskGrid();
     }
   });
+  // 步骤拖拽排序（任务卡片内）
+  on($('#taskGrid'), 'dragstart', e => {
+    const step = e.target.closest('[data-drag-step]');
+    if(step){
+      e.dataTransfer.setData('text/plain', JSON.stringify({type:'step', sid:step.dataset.dragStep, tid:step.dataset.dragStepTask}));
+      e.dataTransfer.effectAllowed = 'move';
+      step.style.opacity = '0.4';
+    }
+  });
+  on($('#taskGrid'), 'dragend', e => { const s=e.target.closest('[data-drag-step]'); if(s) s.style.opacity=''; });
+  on($('#taskGrid'), 'dragover', e => { if(e.target.closest('[data-drag-step]')) e.preventDefault(); });
+  on($('#taskGrid'), 'drop', e => {
+    const target = e.target.closest('[data-drag-step]');
+    if(!target) return;
+    e.preventDefault();
+    const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+    if(data.type !== 'step') return;
+    if(data.tid !== target.dataset.dragStepTask) return;
+    const task = tasks.find(x => x.id === data.tid);
+    if(!task) return;
+    const fromIdx = task.steps.findIndex(s => s.id === data.sid);
+    const toIdx = task.steps.findIndex(s => s.id === target.dataset.dragStep);
+    if(fromIdx === -1 || toIdx === -1 || fromIdx === toIdx) return;
+    const [moved] = task.steps.splice(fromIdx, 1);
+    task.steps.splice(toIdx, 0, moved);
+    save(K_TASKS, tasks);
+    renderAll();
+  });
+  // 步骤拖拽排序（编辑弹窗内）
+  on($('#fStepsList'), 'dragstart', e => {
+    const row = e.target.closest('.step-row');
+    if(row){
+      e.dataTransfer.setData('text/plain', JSON.stringify({type:'form-step', idx:[...row.parentElement.children].indexOf(row)}));
+      e.dataTransfer.effectAllowed = 'move';
+      row.style.opacity = '0.4';
+    }
+  });
+  on($('#fStepsList'), 'dragend', e => { const r=e.target.closest('.step-row'); if(r) r.style.opacity=''; });
+  on($('#fStepsList'), 'dragover', e => { if(e.target.closest('.step-row')) e.preventDefault(); });
+  on($('#fStepsList'), 'drop', e => {
+    const targetRow = e.target.closest('.step-row');
+    if(!targetRow) return;
+    e.preventDefault();
+    const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+    if(data.type !== 'form-step') return;
+    const list = $('#fStepsList');
+    const fromIdx = data.idx;
+    const toIdx = [...list.children].indexOf(targetRow);
+    if(fromIdx === toIdx) return;
+    const rows = [...list.children];
+    const [moved] = rows.splice(fromIdx, 1);
+    rows.splice(toIdx, 0, moved);
+    list.innerHTML = '';
+    rows.forEach(r => list.appendChild(r));
+  });
   // 看板/近期 点击 mini-card / up-item
   on($('#board'), 'click', e => {
     const m = e.target.closest('[data-edit]'); if(m) openQuickHandle(m.dataset.edit);
+  });
+  // 看板拖拽改优先级
+  on($('#board'), 'dragstart', e => {
+    const card = e.target.closest('[data-drag-task]');
+    if(card){ e.dataTransfer.setData('text/plain', card.dataset.dragTask); e.dataTransfer.effectAllowed = 'move'; }
+  });
+  on($('#board'), 'dragover', e => {
+    const col = e.target.closest('[data-drop-priority]');
+    if(col){ e.preventDefault(); e.dataTransfer.dropEffect = 'move'; col.classList.add('drag-over'); }
+    $$('.board-col').forEach(c => { if(c !== col) c.classList.remove('drag-over'); });
+  });
+  on($('#board'), 'dragleave', e => {
+    if(!e.target.closest('.board-col')) $$('.board-col').forEach(c => c.classList.remove('drag-over'));
+  });
+  on($('#board'), 'drop', e => {
+    e.preventDefault();
+    const col = e.target.closest('[data-drop-priority]');
+    if(!col) return;
+    col.classList.remove('drag-over');
+    const tid = e.dataTransfer.getData('text/plain');
+    const newP = col.dataset.dropPriority;
+    const t = tasks.find(x => x.id === tid);
+    if(t && t.priority !== newP){
+      t.priority = newP;
+      save(K_TASKS, tasks);
+      renderAll();
+      toast('已移到 '+newP+' '+PNAME[newP], 'ok');
+    }
   });
   on($('#upcoming'), 'click', e => {
     // 步骤勾选/取消 → 划掉 + 移到最下面（排序逻辑在 sortGroup 里）
@@ -2071,7 +2160,7 @@ function renderFormSteps(steps){
   const list = $('#fStepsList');
   const rows = steps.length ? steps : [{name:'', due:'', skippable:false}];
   list.innerHTML = rows.map((s,i) => `
-    <div class="step-row" style="display:flex;gap:6px;align-items:center">
+    <div class="step-row" draggable="true" style="display:flex;gap:6px;align-items:center">
       <input class="sr-name" type="text" placeholder="步骤 ${i+1}" value="${escapeHtml(s.name||'')}" style="flex:1;height:38px;padding:0 10px;border:1px solid var(--line);border-radius:8px;font-size:14px">
       <input class="sr-due" type="date" value="${s.due||''}" style="width:140px;height:38px;padding:0 8px;border:1px solid var(--line);border-radius:8px;font-size:13px" title="该步骤的截止日期">
       <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--ink-2);white-space:nowrap;cursor:pointer">
