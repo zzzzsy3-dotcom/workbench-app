@@ -2323,21 +2323,32 @@ function saveWs(){
     save(K_WEBSITES, websites);
     toast('已更新网站','ok');
   } else {
-    // 同名检测：如果有同名隐藏网站，提示恢复
-    const sameDomain = websites.find(w => w.domain === domain && w.hidden);
+    // 同名检测：检查所有网站（含隐藏和显示中）
+    const sameDomain = websites.find(w => w.domain === domain);
     if(sameDomain){
-      showConfirm('已有同名网站「'+sameDomain.name+'」已隐藏', '是否恢复显示这个隐藏的网站？选「确认」恢复，选「取消」继续新建。', () => {
-        sameDomain.hidden = false;
-        sameDomain.name = name; // 用新名称覆盖
-        sameDomain.color = color;
-        save(K_WEBSITES, websites);
+      if(sameDomain.hidden){
+        // 隐藏的同名网站 → 提示恢复
+        showConfirm('已有同名网站「'+sameDomain.name+'」（已隐藏）', '是否恢复显示这个隐藏的网站？选「确认」恢复（用新名称/颜色覆盖），选「取消」继续新建。', () => {
+          sameDomain.hidden = false;
+          sameDomain.name = name;
+          sameDomain.color = color;
+          save(K_WEBSITES, websites);
+          activeWs = sameDomain.id; save(K_ACTIVE_WS, activeWs);
+          editingWsId = null;
+          closeAllModals();
+          renderAll();
+          toast('已恢复网站','ok');
+        });
+        return;
+      } else {
+        // 显示中的同名网站 → 提示已存在，切换过去
+        toast('已有同名网站「'+sameDomain.name+'」正在使用，已切换到该网站','err');
         activeWs = sameDomain.id; save(K_ACTIVE_WS, activeWs);
         editingWsId = null;
         closeAllModals();
         renderAll();
-        toast('已恢复网站','ok');
-      });
-      return; // 不新建，等用户决定
+        return;
+      }
     }
     const w = { id:uid(), name, domain, color, hidden:false };
     websites.push(w);
