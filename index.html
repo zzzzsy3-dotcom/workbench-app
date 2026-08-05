@@ -189,6 +189,12 @@
   body.show-done-on .task-card.done .tc-title { text-decoration: none; color: var(--ink); }
   body.show-done-on .task-card.done .tc-del { display: none; }
   body.show-done-on .task-card.done .tc-restore { display: grid; }
+  /* 批量选择模式：卡片可点切换 */
+  body.batch-mode .task-card { cursor: pointer; }
+  body.batch-mode .task-card:hover { box-shadow: 0 0 0 1px var(--brand); }
+  .tc-select { color: var(--ink-3); }
+  .tc-select:hover { color: var(--brand); }
+  .task-card.sel .tc-select { color: var(--brand); background: var(--brand-bg); }
   .task-card.sel { box-shadow: 0 0 0 2px var(--brand), var(--shadow-lg); background: linear-gradient(135deg, #fff 0%, #fff 40%, var(--brand-bg) 100%); }
   .task-card.sel::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--brand); border-radius: 14px 0 0 14px; }
   .tc-top { display: flex; align-items: flex-start; gap: 10px; }
@@ -1112,6 +1118,7 @@ let suppressSync = false; // 外部拉取写入时抑制自动 push，防循环
 let syncPushTimer = null;
 let savingTplFromTask = null;
 let selectedTasks = new Set(); // 批量选择（会话态，不持久化）
+let expandedTasks = new Set(); // 今天要处理里展开的任务（会话态，刷新后重置）
 let remoteSha = load(K_SYNC_SHA, null); // 单独持久化，刷新后 push 也能用
 
 /* ---------- 渲染：今日要处理 ---------- */
@@ -1170,10 +1177,11 @@ function renderToday() {
       const r = due ? relDue(due) : { cls: '', label: '无截止' };
       const prog = taskProgress(task);
       const over = due && daysBetween(t, due) < 0;
+      const expanded = expandedTasks.has(task.id);
       html += `
-        <div class="today-task ${over?'over':''}" data-task="${task.id}">
+        <div class="today-task ${over?'over':''} ${expanded?'expanded':''}" data-task="${task.id}">
           <div class="tt-row" data-toggle-task="${task.id}">
-            <span class="tt-expand">▶</span>
+            <span class="tt-expand">${expanded?'▼':'▶'}</span>
             <div class="pmark" style="background:${PCOLOR[task.priority]}"></div>
             <span class="tt-title">${escapeHtml(task.title)}</span>
             <span class="tt-meta">
@@ -1185,7 +1193,7 @@ function renderToday() {
           <button class="icon-btn" data-edit-task="${task.id}" title="编辑">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
           </button>
-          <div class="tt-steps" hidden>
+          <div class="tt-steps" ${expanded?'':'hidden'}>
             ${sortStepsForDisplay(task.steps).map(s => renderTodayStep(s, task.id)).join('') || '<div style="padding:8px;color:var(--ink-3);font-size:13px">无步骤</div>'}
           </div>
         </div>`;
@@ -1310,9 +1318,6 @@ function renderTaskCard(x) {
   return `
     <div class="task-card ${done?'done':''} ${sel?'sel':''}" data-card="${x.id}">
       <div class="tc-top">
-        <label class="tc-sel" title="选择此任务">
-          <input type="checkbox" data-select="${x.id}" ${sel?'checked':''}>
-        </label>
         <div class="tc-pmark" style="background:${PCOLOR[x.priority]}"></div>
         <div class="tc-main">
           <div class="tc-title">${escapeHtml(x.title)}</div>
@@ -1322,6 +1327,11 @@ function renderTaskCard(x) {
           </div>
         </div>
         <div class="tc-actions">
+          <button class="icon-btn tc-select" data-select-task="${x.id}" title="${sel?'取消选择':'选择'}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${sel?'2.5':'2'}" stroke-linecap="round" stroke-linejoin="round">
+              ${sel?'<path d="M20 6 9 17l-5-5"/>' : '<rect x="4" y="4" width="16" height="16" rx="3"/>'}
+            </svg>
+          </button>
           <button class="icon-btn" data-tpl="${x.id}" title="存为模板">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
           </button>
@@ -1358,14 +1368,16 @@ function renderBatchBar() {
 }
 function clearSelection() {
   selectedTasks.clear();
+  document.body.classList.remove('batch-mode');
   renderBatchBar();
-  // 仅更新卡片选中态，不整页重渲染（保留滚动位置）
-  $$('.task-card.sel').forEach(c => { c.classList.remove('sel'); const cb=c.querySelector('[data-select]'); if(cb) cb.checked=false; });
+  // 重渲染卡片（图标变回未选中状态）
+  if($('#taskGrid')) renderTaskGrid();
 }
 function selectAllVisible() {
   const w = websites.find(x=>x.id===activeWs);
   if(!w) return;
   tasks.filter(t=>t.websiteId===w.id).forEach(t => selectedTasks.add(t.id));
+  document.body.classList.add('batch-mode');
   renderTaskGrid(); renderBatchBar();
 }
 function batchSetPriority(p) {
@@ -1705,22 +1717,52 @@ function bindTabs(){
     const tab = e.target.closest('[data-ws]');
     if(tab){ e.preventDefault(); openWsModal(tab.dataset.ws); }
   });
+  // 手机长按网站 Tab → 编辑
+  let longPressTimer = null;
+  $('#wsTabs').addEventListener('touchstart', e => {
+    const tab = e.target.closest('[data-ws]');
+    if(!tab) return;
+    longPressTimer = setTimeout(() => {
+      longPressTimer = null;
+      openWsModal(tab.dataset.ws);
+    }, 500);
+  }, {passive: true});
+  $('#wsTabs').addEventListener('touchmove', () => { if(longPressTimer){ clearTimeout(longPressTimer); longPressTimer = null; } }, {passive: true});
+  $('#wsTabs').addEventListener('touchend', () => { if(longPressTimer){ clearTimeout(longPressTimer); longPressTimer = null; } });
   // 删除网站
   on($('#wsDel'), 'click', confirmDelWs);
   // 任务网格内事件
   on($('#taskGrid'), 'click', e => {
-    // 批量选择：点击 .tc-sel 容器（label 或 input），找里面的 checkbox
-    const tcSel = e.target.closest('.tc-sel');
-    if(tcSel){
+    // 选择 icon：点击切换选中
+    const selectBtn = e.target.closest('[data-select-task]');
+    if(selectBtn){
       e.preventDefault();
-      const cb = tcSel.querySelector('input[type="checkbox"]');
-      if(!cb) return;
-      const id = cb.dataset.select;
+      const id = selectBtn.dataset.selectTask;
       const has = selectedTasks.has(id);
       if(has) selectedTasks.delete(id); else selectedTasks.add(id);
-      cb.checked = !has;
-      const card = tcSel.closest('.task-card'); if(card) card.classList.toggle('sel', !has);
-      renderBatchBar(); return;
+      const card = selectBtn.closest('.task-card');
+      if(card) card.classList.toggle('sel', !has);
+      // 切换 body batch-mode class
+      document.body.classList.toggle('batch-mode', selectedTasks.size > 0);
+      renderBatchBar();
+      renderTaskGrid(); // 重渲染（图标需要变）
+      return;
+    }
+    // 批量模式下：点卡片正文区也切换选中
+    if(document.body.classList.contains('batch-mode')){
+      const card = e.target.closest('.task-card');
+      // 但不点 icon-btn / step / step-add 等交互元素
+      if(card && !e.target.closest('.tc-actions, .step, .step-add, .tc-sel')){
+        e.preventDefault();
+        const id = card.dataset.card;
+        const has = selectedTasks.has(id);
+        if(has) selectedTasks.delete(id); else selectedTasks.add(id);
+        card.classList.toggle('sel', !has);
+        document.body.classList.toggle('batch-mode', selectedTasks.size > 0);
+        renderBatchBar();
+        renderTaskGrid();
+        return;
+      }
     }
     const edit = e.target.closest('[data-edit]');
     const del = e.target.closest('[data-del]');
@@ -1738,6 +1780,14 @@ function bindTabs(){
       renderAll();
       toast('已恢复为未完成：'+t.title, 'ok');
       return;
+    }
+  });
+  // ESC 退出批量模式
+  document.addEventListener('keydown', e => {
+    if(e.key === 'Escape' && selectedTasks.size > 0){
+      clearSelection();
+      document.body.classList.remove('batch-mode');
+      renderTaskGrid();
     }
   });
   // 看板/近期 点击 mini-card / up-item
@@ -1763,7 +1813,7 @@ function bindTabs(){
   });
   // 今日项 处理按钮
   on($('#todayBox'), 'click', e => {
-    // 步骤勾选/取消——只更新 DOM，不重渲染（保留展开状态 + 滚动位置）
+    // 步骤勾选/取消——renderAll 重渲染但 today 展开状态用 expandedTasks 保留
     const stepToggle = e.target.closest('[data-step-toggle]');
     if(stepToggle){
       e.stopPropagation();
@@ -1775,25 +1825,20 @@ function bindTabs(){
       if(!step) return;
       step.done = !step.done;
       save(K_TASKS, tasks);
-      // 局部更新：toggle .done class（CSS order:99 自动把已完成的排到最后）
-      stepToggle.classList.toggle('done', step.done);
-      stepToggle.classList.toggle('checked', step.done); // 同步给 inner .step-check
-      const check = stepToggle.querySelector('.step-check');
-      if(check) check.classList.toggle('checked', step.done);
+      renderAll(); // 重渲染所有视图同步进度条 + 其他板块
       toast(step.done ? '✓ '+step.name : '已取消：'+step.name, 'ok');
       return;
     }
     // 编辑任务
     const edit = e.target.closest('[data-edit-task]');
     if(edit){ e.stopPropagation(); openTaskModal(edit.dataset.editTask); return; }
-    // 展开/折叠
+    // 展开/折叠（用 expandedTasks 全局保存）
     const toggle = e.target.closest('[data-toggle-task]');
     if(toggle){
-      const taskDiv = toggle.closest('.today-task');
-      const stepsDiv = taskDiv.querySelector('.tt-steps');
-      const isHidden = stepsDiv.hasAttribute('hidden');
-      if(isHidden){ stepsDiv.removeAttribute('hidden'); taskDiv.classList.add('expanded'); toggle.querySelector('.tt-expand').textContent = '▼'; }
-      else { stepsDiv.setAttribute('hidden',''); taskDiv.classList.remove('expanded'); toggle.querySelector('.tt-expand').textContent = '▶'; }
+      const tid = toggle.dataset.toggleTask;
+      const isExpanded = expandedTasks.has(tid);
+      if(isExpanded) expandedTasks.delete(tid); else expandedTasks.add(tid);
+      renderToday(); // 只重渲染 today（保留其他视图）
       return;
     }
   });
