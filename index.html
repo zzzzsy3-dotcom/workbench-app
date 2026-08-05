@@ -855,6 +855,18 @@ function seedSampleData() {
   return true;
 }
 
+/* 每次启动都强制清理 LEGACY 旧名字模板（不依赖 tpl_version 升级）
+   用于：手动新建的旧名字、导入文件残留、seedTemplates 因故未跑等任何来源 */
+function purgeLegacyTemplates(){
+  const LEGACY = new Set(['建站标准流程','产品页上新','博客文章发布','支付通道接入','404死链检测','文章信息增量注入']);
+  const before = templates.length;
+  templates = templates.filter(t => !LEGACY.has(t.name));
+  if(templates.length !== before){
+    save(K_TEMPLATES, templates);
+    console.log('[模板清理] 已清掉', before - templates.length, '个旧预置模板');
+  }
+}
+
 /* ---------- 模板库 ---------- */
 function seedTemplates() {
   const loaded = localStorage.getItem(PREFIX + 'tpl_version');
@@ -1985,6 +1997,8 @@ tasks = load(K_TASKS, []);
 templates = load(K_TEMPLATES, []);
 activeWs = load(K_ACTIVE_WS, null);
 suppressSync = false;
+// 每次启动强制清理历史残留的旧预置模板（不依赖 tpl_version 升级）
+purgeLegacyTemplates();
 // 如果activeWs失效，重置
 if(!activeWs || !websites.find(w=>w.id===activeWs)){ activeWs = websites[0]?.id || null; }
 bindTabs();
