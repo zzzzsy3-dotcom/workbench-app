@@ -1350,10 +1350,7 @@ function renderBatchBar() {
   const n = selectedTasks.size;
   $('#bbCount').textContent = '已选 ' + n + ' 项';
   bar.classList.toggle('show', n > 0);
-  // 网站下拉
-  $('#bbWebsite').innerHTML = websites.map(w=>`<option value="${w.id}">${escapeHtml(w.domain||w.name)}</option>`).join('')
-    || '<option value="">无网站</option>';
-  if(activeWs) $('#bbWebsite').value = activeWs;
+  // 注：#bbWebsite 在动态 panel 里，只在面板展开时填充
 }
 function clearSelection() {
   selectedTasks.clear();
