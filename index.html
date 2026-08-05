@@ -925,12 +925,14 @@ let tasks = load(K_TASKS, []);
 let templates = load(K_TEMPLATES, []);
 let activeWs = load(K_ACTIVE_WS, null);
 let editingTaskId = null;
+const K_SYNC_SHA = PREFIX + 'sync_sha'; // 持久化 sha，跨刷新保留
 let syncCfg = load(K_SYNC, null); // {owner, repo, path, token}
 let syncMeta = load(K_SYNC_META, { lastSync:0, status:'idle', msg:'' });
 let suppressSync = false; // 外部拉取写入时抑制自动 push，防循环
 let syncPushTimer = null;
 let savingTplFromTask = null;
 let selectedTasks = new Set(); // 批量选择（会话态，不持久化）
+let remoteSha = load(K_SYNC_SHA, null); // 单独持久化，刷新后 push 也能用
 
 /* ---------- 渲染：今日要处理 ---------- */
 function renderToday() {
@@ -1772,19 +1774,38 @@ async function githubPull(){
   return data;
 }
 
+function setRemoteSha(sha){
+  remoteSha = sha || null;
+  save(K_SYNC_SHA, remoteSha);
+}
+
 async function githubPush(){
   if(!syncCfg || !syncCfg.token) return;
   if(syncPushTimer) return; // 已在排队
+
+  // 防御：如果 memory/localStorage 都没 sha（比如首次、或被清），先 pull 一次拿
+  if(!remoteSha){
+    try {
+      const data = await githubPull();
+      if(data) applyRemote(data);
+    } catch(_){ /* pull 失败也照试 push，让 GitHub 报错 */ }
+  }
+
   const payload = { version:2, exportedAt:new Date().toISOString(), websites, tasks, templates };
   const body = { message:'sync: '+new Date().toISOString(), content: b64encodeUtf8(JSON.stringify(payload)) };
-  if(window.__remoteSha) body.sha = window.__remoteSha;
+  if(remoteSha) body.sha = remoteSha;
   const res = await fetch(syncApiUrl(), { method:'PUT', headers: ghHeaders({'Content-Type':'application/json'}), body: JSON.stringify(body) });
   if(!res.ok){
     if(res.status===409) throw new Error('CONFLICT');
+    if(res.status===422 && remoteSha){
+      // sha 失效（被外部改了），清掉再重试一次
+      try{ const e = await res.json(); if((e.errors||[]).some(x=>/sha/i.test(x.message||''))) throw new Error('SHA_INVALID'); }catch(_){ throw new Error('HTTP 422'); }
+    }
     const e = await res.json().catch(()=>({})); throw new Error(e.message || ('HTTP '+res.status));
   }
   const j = await res.json();
-  window.__remoteSha = j.content.sha;
+  remoteSha = j.content.sha;
+  save(K_SYNC_SHA, remoteSha);
 }
 
 function schedulePush(){
@@ -1807,7 +1828,7 @@ function applyRemote(data){
   if(Array.isArray(data.tasks)){ tasks = data.tasks; save(K_TASKS, tasks); }
   if(Array.isArray(data.templates)){ templates = data.templates; save(K_TEMPLATES, templates); }
   suppressSync = false;
-  if(data.__sha) window.__remoteSha = data.__sha;
+  if(data.__sha) setRemoteSha(data.__sha);
   if(!activeWs || !websites.find(w=>w.id===activeWs)) activeWs = websites[0]?.id || null;
   save(K_ACTIVE_WS, activeWs);
   renderAll();
@@ -1845,7 +1866,7 @@ function saveSyncCfg(){
   if(!owner || !repo || !token){ toast('用户名/仓库名/Token 都必须填','err'); return; }
   syncCfg = { owner, repo, path, token };
   save(K_SYNC, syncCfg);
-  window.__remoteSha = null;
+  setRemoteSha(null);
   toast('配置已保存，正在同步…','ok');
   (async () => {
     try {
@@ -1865,14 +1886,17 @@ function saveSyncCfg(){
 
 function disconnectSync(){
   showConfirm('断开云端同步？', '将清除本设备保存的 GitHub 配置（token 会从本设备删除）。云端仓库里的数据文件不会删除。', () => {
-    syncCfg = null; save(K_SYNC, null); window.__remoteSha = null;
+    syncCfg = null; save(K_SYNC, null); setRemoteSha(null);
     updateSyncStatus('idle');
     toast('已断开同步','ok');
   });
 }
 
 function initAutoSync(){
-  if(syncCfg && syncCfg.token){ doPull(false); }
+  if(syncCfg && syncCfg.token){
+    // 后台静默拉取：失败也不要阻断渲染
+    doPull(false).catch(()=>{});
+  }
 }
 
 /* ---------- 备份提示 ---------- */
@@ -1908,7 +1932,8 @@ suppressSync = false;
 // 如果activeWs失效，重置
 if(!activeWs || !websites.find(w=>w.id===activeWs)){ activeWs = websites[0]?.id || null; }
 bindTabs();
-renderAll();
+// 任何渲染异常都不让页面全空
+try { renderAll(); } catch(err){ console.error('renderAll failed:', err); }
 initAutoSync();
 </script>
 <!-- 批量操作栏 -->
