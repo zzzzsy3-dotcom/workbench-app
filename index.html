@@ -686,6 +686,42 @@
 <!-- Toast -->
 <div class="toast-wrap" id="toastWrap"></div>
 
+<!-- 批量操作栏（必须在 script 之前，否则 bindTabs 找不到节点会抛错） -->
+<div class="batch-bar" id="batchBar">
+  <div class="bb-inner">
+    <span class="bb-count" id="bbCount">已选 0 项</span>
+    <button class="bb-mini" id="bbSelectAll">全选本页</button>
+    <button class="bb-mini" id="bbClear">取消选择</button>
+    <div class="bb-sep"></div>
+    <div class="bb-group">
+      <label>顺延</label>
+      <input type="number" id="bbShift" value="3" min="-365" max="365">
+      <label>天</label>
+      <button class="bb-mini" id="bbShiftApply">应用</button>
+    </div>
+    <div class="bb-group">
+      <label>设日期</label>
+      <input type="date" id="bbDate">
+      <button class="bb-mini" id="bbDateApply">应用</button>
+    </div>
+    <div class="bb-sep"></div>
+    <div class="bb-group">
+      <label>优先级</label>
+      <button class="bb-mini p0" data-bp="P0">P0</button>
+      <button class="bb-mini p1" data-bp="P1">P1</button>
+      <button class="bb-mini p2" data-bp="P2">P2</button>
+    </div>
+    <div class="bb-sep"></div>
+    <div class="bb-group">
+      <label>移到</label>
+      <select class="bb-select" id="bbWebsite"></select>
+      <button class="bb-mini primary" id="bbMove">移动</button>
+    </div>
+    <div class="bb-sep"></div>
+    <button class="bb-mini danger" id="bbDelete">删除选中</button>
+  </div>
+</div>
+
 <script>
 /* =========================================================
    多站工作进度台  —— 单文件，localStorage 持久化
@@ -1383,23 +1419,29 @@ function bindStepEvents(){
 }
 
 /* 主Tab切换 */
+// 防御性 bind：DOM 缺失时不抛错（任何 addEventListener 都做存在性检查）
+function on(el, ev, fn){
+  if(el) el.addEventListener(ev, fn);
+}
+function onAll(els, ev, fn){
+  if(els) els.forEach(el => el.addEventListener(ev, fn));
+}
+
 function bindTabs(){
-  $$('.maintab, .bottomnav button').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const p = btn.dataset.pane;
-      $$('.maintab').forEach(b=>b.classList.toggle('active', b.dataset.pane===p));
-      $$('.bottomnav button').forEach(b=>b.classList.toggle('active', b.dataset.pane===p));
-      $$('.pane').forEach(el=>el.classList.toggle('active', el.id==='pane-'+p));
-    });
+  onAll($$('.maintab, .bottomnav button'), 'click', btn => {
+    const p = btn.dataset.pane;
+    $$('.maintab').forEach(b=>b.classList.toggle('active', b.dataset.pane===p));
+    $$('.bottomnav button').forEach(b=>b.classList.toggle('active', b.dataset.pane===p));
+    $$('.pane').forEach(el=>el.classList.toggle('active', el.id==='pane-'+p));
   });
   // 网站Tab切换
-  $('#wsTabs').addEventListener('click', e => {
+  on($('#wsTabs'), 'click', e => {
     const tab = e.target.closest('[data-ws]');
     if(tab){ activeWs = tab.dataset.ws; save(K_ACTIVE_WS, activeWs); renderWsTabs(); renderWsHead(); renderTaskGrid(); return; }
     if(e.target.closest('#wsAdd')){ openWsModal(); }
   });
   // 任务网格内事件
-  $('#taskGrid').addEventListener('click', e => {
+  on($('#taskGrid'), 'click', e => {
     const sel = e.target.closest('[data-select]');
     if(sel){ e.preventDefault(); const id = sel.dataset.select; if(selectedTasks.has(id)) selectedTasks.delete(id); else selectedTasks.add(id);
       const card = sel.closest('.task-card'); if(card) card.classList.toggle('sel', selectedTasks.has(id));
@@ -1412,50 +1454,50 @@ function bindTabs(){
     if(del){ confirmDelTask(del.dataset.del); return; }
   });
   // 看板/近期 点击 mini-card / up-item
-  $('#board').addEventListener('click', e => {
+  on($('#board'), 'click', e => {
     const m = e.target.closest('[data-edit]'); if(m) openTaskModal(m.dataset.edit);
   });
-  $('#upcoming').addEventListener('click', e => {
+  on($('#upcoming'), 'click', e => {
     const m = e.target.closest('[data-edit]'); if(m) openTaskModal(m.dataset.edit);
   });
   // 今日项 处理按钮
-  $('#todayBox').addEventListener('click', e => {
+  on($('#todayBox'), 'click', e => {
     const q = e.target.closest('[data-quick]');
     if(q){ openTaskModal(q.dataset.quick); return; }
     const it = e.target.closest('[data-task]');
     if(it){ openTaskModal(it.dataset.task); }
   });
   // 顶部按钮
-  $('#btnNewTask').addEventListener('click', () => openTaskModal(null));
-  $('#btnTplLib').addEventListener('click', () => openTplLib());
-  $('#btnExport').addEventListener('click', exportData);
-  $('#btnImport').addEventListener('click', () => $('#fileInput').click());
-  $('#fileInput').addEventListener('change', importData);
+  on($('#btnNewTask'), 'click', () => openTaskModal(null));
+  on($('#btnTplLib'), 'click', () => openTplLib());
+  on($('#btnExport'), 'click', exportData);
+  on($('#btnImport'), 'click', () => $('#fileInput') && $('#fileInput').click());
+  on($('#fileInput'), 'change', importData);
   // 云端同步
-  $('#btnSync').addEventListener('click', openSyncModal);
-  $('#syncSave').addEventListener('click', saveSyncCfg);
-  $('#syncPull').addEventListener('click', () => doPull(true));
-  $('#syncDisconnect').addEventListener('click', disconnectSync);
+  on($('#btnSync'), 'click', openSyncModal);
+  on($('#syncSave'), 'click', saveSyncCfg);
+  on($('#syncPull'), 'click', () => doPull(true));
+  on($('#syncDisconnect'), 'click', disconnectSync);
   // 模态框关闭
-  $$('[data-close]').forEach(b => b.addEventListener('click', closeAllModals));
-  $$('.modal-mask').forEach(m => m.addEventListener('click', e => { if(e.target===m) closeAllModals(); }));
+  onAll($$('[data-close]'), 'click', closeAllModals);
+  onAll($$('.modal-mask'), 'click', e => { if(e.target===e.currentTarget) closeAllModals(); });
   // 优先级选择
-  $$('#fPriority .seg-opt').forEach(b => b.addEventListener('click', () => {
+  onAll($$('#fPriority .seg-opt'), 'click', b => {
     $$('#fPriority .seg-opt').forEach(x=>x.classList.remove('active'));
-    b.classList.add('active');
-  }));
+    b.target.classList.add('active');
+  });
   // 任务保存
-  $('#taskSave').addEventListener('click', saveTask);
+  on($('#taskSave'), 'click', saveTask);
   // 网站保存
-  $('#wsSave').addEventListener('click', saveWs);
+  on($('#wsSave'), 'click', saveWs);
   // 批量操作栏
-  $('#bbSelectAll').addEventListener('click', selectAllVisible);
-  $('#bbClear').addEventListener('click', clearSelection);
-  $('#bbShiftApply').addEventListener('click', () => { const v = parseInt($('#bbShift').value, 10); if(!isNaN(v)) batchShiftDue(v); });
-  $('#bbDateApply').addEventListener('click', () => batchSetDate($('#bbDate').value));
-  $('#bbMove').addEventListener('click', () => batchMoveWebsite($('#bbWebsite').value));
-  $('#bbDelete').addEventListener('click', batchDeleteSelected);
-  $$('#batchBar [data-bp]').forEach(b => b.addEventListener('click', () => batchSetPriority(b.dataset.bp)));
+  on($('#bbSelectAll'), 'click', selectAllVisible);
+  on($('#bbClear'), 'click', clearSelection);
+  on($('#bbShiftApply'), 'click', () => { const v = parseInt($('#bbShift').value, 10); if(!isNaN(v)) batchShiftDue(v); });
+  on($('#bbDateApply'), 'click', () => batchSetDate($('#bbDate').value));
+  on($('#bbMove'), 'click', () => batchMoveWebsite($('#bbWebsite').value));
+  on($('#bbDelete'), 'click', batchDeleteSelected);
+  onAll($$('#batchBar [data-bp]'), 'click', b => batchSetPriority(b.dataset.bp));
 }
 
 /* ---------- 任务模态 ---------- */
@@ -1956,40 +1998,5 @@ try { renderAll(); } catch(err){ console.error('renderAll failed:', err); }
   }
 })();
 </script>
-<!-- 批量操作栏 -->
-<div class="batch-bar" id="batchBar">
-  <div class="bb-inner">
-    <span class="bb-count" id="bbCount">已选 0 项</span>
-    <button class="bb-mini" id="bbSelectAll">全选本页</button>
-    <button class="bb-mini" id="bbClear">取消选择</button>
-    <div class="bb-sep"></div>
-    <div class="bb-group">
-      <label>顺延</label>
-      <input type="number" id="bbShift" value="3" min="-365" max="365">
-      <label>天</label>
-      <button class="bb-mini" id="bbShiftApply">应用</button>
-    </div>
-    <div class="bb-group">
-      <label>设日期</label>
-      <input type="date" id="bbDate">
-      <button class="bb-mini" id="bbDateApply">应用</button>
-    </div>
-    <div class="bb-sep"></div>
-    <div class="bb-group">
-      <label>优先级</label>
-      <button class="bb-mini p0" data-bp="P0">P0</button>
-      <button class="bb-mini p1" data-bp="P1">P1</button>
-      <button class="bb-mini p2" data-bp="P2">P2</button>
-    </div>
-    <div class="bb-sep"></div>
-    <div class="bb-group">
-      <label>移到</label>
-      <select class="bb-select" id="bbWebsite"></select>
-      <button class="bb-mini primary" id="bbMove">移动</button>
-    </div>
-    <div class="bb-sep"></div>
-    <button class="bb-mini danger" id="bbDelete">删除选中</button>
-  </div>
-</div>
 </body>
 </html>
