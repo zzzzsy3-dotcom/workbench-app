@@ -121,6 +121,19 @@
   .due.soon { color: var(--brand-d); }
   .today-empty { text-align: center; color: var(--ink-3); padding: 18px; font-size: 14px; }
   .today-empty svg { width: 40px; height: 40px; margin: 0 auto 8px; display: block; opacity: .5; }
+  /* 步骤勾选按钮 */
+  .today-item .t-step-check { width: 24px; height: 24px; border-radius: 6px; border: 1.5px solid var(--line-2); background: #fff; cursor: pointer; display: grid; place-items: center; flex-shrink: 0; color: transparent; transition: all .12s; }
+  .today-item .t-step-check:hover { border-color: var(--brand); }
+  .today-item .t-step-check.checked { background: var(--ok); border-color: var(--ok); color: #fff; }
+  .today-item .t-step-check svg { width: 14px; height: 14px; }
+  .today-item .t-step-name { font-weight: 600; font-size: 14.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .today-item .t-task-title { color: var(--ink-2); }
+  .today-item .src-tag { font-size: 10.5px; font-weight: 700; padding: 1px 6px; border-radius: 5px; white-space: nowrap; }
+  .today-item .src-tag.task { background: #FEF3C7; color: #92400E; }
+  .today-item .src-tag.step { background: #DBEAFE; color: #1D4ED8; }
+  .today-item .icon-btn { width: 30px; height: 30px; border-radius: 8px; border: none; background: transparent; color: var(--ink-3); cursor: pointer; display: grid; place-items: center; flex-shrink: 0; }
+  .today-item .icon-btn:hover { background: var(--line-2); color: var(--ink); }
+  .today-item .icon-btn svg { width: 15px; height: 15px; }
 
   /* ===== 主Tab ===== */
   .maintabs { display: flex; gap: 4px; background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 4px; margin-bottom: 16px; box-shadow: var(--shadow); }
@@ -149,8 +162,8 @@
   }
   .ws-tab .dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
   .ws-tab .cnt { font-size: 11px; background: var(--line-2); color: var(--ink-3); padding: 1px 7px; border-radius: 999px; font-weight: 700; }
-  .ws-tab.active { background: var(--ink); border-color: var(--ink); color: #fff; }
-  .ws-tab.active .cnt { background: rgba(255,255,255,.18); color: #fff; }
+  .ws-tab.active { background: var(--brand); border-color: var(--brand); color: #fff; }
+  .ws-tab.active .cnt { background: rgba(255,255,255,.22); color: #fff; }
   .ws-tab.add { border-style: dashed; color: var(--ink-3); }
   .ws-head { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
   .ws-head h3 { font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
@@ -199,18 +212,17 @@
   }
   .batch-bar.show { display: block; }
   .batch-bar .bb-row { display: flex; align-items: center; gap: 8px; }
-  .batch-bar .bb-ops { display: flex; flex-direction: column; gap: 10px; padding-top: 10px; margin-top: 10px; border-top: 1px dashed var(--line); }
+  .batch-bar .bb-ops { display: flex; flex-direction: column; gap: 6px; padding-top: 8px; margin-top: 8px; border-top: 1px dashed var(--line); }
   .batch-bar .bb-ops[hidden] { display: none; }
-  .bb-op { background: var(--line-2); border-radius: 10px; padding: 8px 10px; }
+  .bb-op { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 6px 10px; border-radius: 8px; background: var(--line-2); }
   .bb-op.danger { background: #FEE2E2; }
-  .bb-op-title { font-size: 12px; font-weight: 700; color: var(--ink-2); margin-bottom: 6px; letter-spacing: .3px; }
+  .bb-op-title { font-size: 12px; font-weight: 700; color: var(--ink-2); white-space: nowrap; min-width: 70px; }
   .bb-op.danger .bb-op-title { color: var(--p0); }
-  .bb-op-body { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 4px; }
-  .bb-op-body:last-child { margin-bottom: 0; }
-  .bb-op-body label { font-size: 12px; color: var(--ink-2); white-space: nowrap; }
-  .bb-op-body input[type=number] { width: 64px; height: 32px; border: 1px solid var(--line); border-radius: 8px; padding: 0 8px; font-size: 16px; background:#fff; }
-  .bb-op-body input[type=date] { height: 32px; border: 1px solid var(--line); border-radius: 8px; padding: 0 6px; font-size: 16px; background:#fff; }
-  .bb-op-body select { height: 32px; border: 1px solid var(--line); border-radius: 8px; padding: 0 6px; font-size: 14px; background:#fff; max-width: 140px; }
+  .bb-op-body { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .bb-op-body label { font-size: 12px; color: var(--ink-3); white-space: nowrap; }
+  .bb-op-body input[type=number] { width: 60px; height: 30px; border: 1px solid var(--line); border-radius: 7px; padding: 0 8px; font-size: 15px; background:#fff; }
+  .bb-op-body input[type=date] { height: 30px; border: 1px solid var(--line); border-radius: 7px; padding: 0 6px; font-size: 14px; background:#fff; }
+  .bb-op-body select { height: 30px; border: 1px solid var(--line); border-radius: 7px; padding: 0 6px; font-size: 13px; background:#fff; max-width: 160px; }
   .bb-count { font-weight: 700; font-size: 14px; color: var(--brand-d); white-space: nowrap; }
   .bb-mini { height: 32px; padding: 0 10px; border: 1px solid var(--line); border-radius: 8px; background: #fff; font-size: 13px; font-weight: 600; cursor: pointer; color: var(--ink); white-space: nowrap; }
   .bb-mini:hover { background: var(--line-2); }
@@ -292,10 +304,17 @@
   .day-head.today { background: var(--brand-bg); }
   .day-head.today .dnum, .day-head.today .dinfo { color: var(--brand-d); }
   .day-body { padding: 6px; }
-  .up-item { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 8px; transition: background .1s; cursor: pointer; }
+  .up-item { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 8px; transition: background .1s; cursor: default; }
   .up-item:hover { background: var(--line-2); }
   .up-item .pmark { width: 4px; height: 26px; border-radius: 3px; flex-shrink: 0; }
-  .up-item .u-title { flex: 1; font-size: 14px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .up-item .up-step-check { width: 22px; height: 22px; border-radius: 5px; border: 1.5px solid var(--line-2); background: #fff; cursor: pointer; display: grid; place-items: center; flex-shrink: 0; color: transparent; transition: all .12s; }
+  .up-item .up-step-check:hover { border-color: var(--brand); }
+  .up-item .up-step-check.checked { background: var(--ok); border-color: var(--ok); color: #fff; }
+  .up-item .up-step-check svg { width: 12px; height: 12px; }
+  .up-item .u-info { flex: 1; min-width: 0; }
+  .up-item .u-step-name { font-size: 14px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .up-item .u-meta { font-size: 11.5px; color: var(--ink-3); display: flex; gap: 6px; flex-wrap: wrap; margin-top: 2px; }
+  .up-item .u-task-title { color: var(--ink-2); }
   .up-item .u-ws { font-size: 11px; color: var(--brand-d); font-weight: 600; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
   .up-item.done .u-title { text-decoration: line-through; color: var(--ink-3); }
 
@@ -739,18 +758,16 @@
   <!-- 行2：操作面板（默认折叠，点击"更多操作"展开） -->
   <div class="bb-ops" id="bbOps" hidden>
     <div class="bb-op">
-      <div class="bb-op-title">📅 改截止日</div>
+      <span class="bb-op-title">📅 改截止日</span>
       <div class="bb-op-body">
         <label>顺延</label><input type="number" id="bbShift" value="3" min="-365" max="365"><label>天</label>
         <button class="bb-mini" id="bbShiftApply">应用</button>
-      </div>
-      <div class="bb-op-body">
-        <label>或设到</label><input type="date" id="bbDate">
+        <label style="margin-left:6px">或设到</label><input type="date" id="bbDate">
         <button class="bb-mini" id="bbDateApply">应用</button>
       </div>
     </div>
     <div class="bb-op">
-      <div class="bb-op-title">⚡ 改优先级</div>
+      <span class="bb-op-title">⚡ 改优先级</span>
       <div class="bb-op-body">
         <button class="bb-mini p0" data-bp="P0">P0 紧急</button>
         <button class="bb-mini p1" data-bp="P1">P1 重要</button>
@@ -758,16 +775,15 @@
       </div>
     </div>
     <div class="bb-op">
-      <div class="bb-op-title">📂 移到 / 复制</div>
+      <span class="bb-op-title">📂 移到 / 复制</span>
       <div class="bb-op-body">
-        <label>目标网站</label>
         <select class="bb-select" id="bbWebsite"></select>
         <button class="bb-mini primary" id="bbMove">移动</button>
         <button class="bb-mini" id="bbCopy">复制</button>
       </div>
     </div>
     <div class="bb-op">
-      <div class="bb-op-title">🔁 步骤排期</div>
+      <span class="bb-op-title">🔁 步骤排期</span>
       <div class="bb-op-body">
         <label>起始</label><input type="date" id="bbStepStart">
         <label>每步 +</label><input type="number" id="bbStepGap" value="1" min="0" max="30" style="width:56px">
@@ -776,7 +792,7 @@
       </div>
     </div>
     <div class="bb-op danger">
-      <div class="bb-op-title">🗑 危险操作</div>
+      <span class="bb-op-title">🗑 危险操作</span>
       <div class="bb-op-body">
         <button class="bb-mini danger" id="bbDelete">删除选中</button>
       </div>
@@ -1053,25 +1069,50 @@ let remoteSha = load(K_SYNC_SHA, null); // 单独持久化，刷新后 push 也�
 /* ---------- 渲染：今日要处理 ---------- */
 function renderToday() {
   const t = todayStr();
-  const items = tasks.filter(x => {
-    if(x.due && allDone(x)) return false; // 完成的不显示
-    if(!x.due) return false;
-    const n = daysBetween(t, x.due);
-    return n <= 3; // 逾期+今天+近3天
-  }).sort((a,b) => {
-    // 逾期优先，再按优先级，再按日期
-    const ao = daysBetween(t,a.due)<0?0:1, bo = daysBetween(t,b.due)<0?0:1;
-    if(ao!==bo) return ao-bo;
-    const pr = {P0:0,P1:1,P2:2};
-    if(pr[a.priority]!==pr[b.priority]) return pr[a.priority]-pr[b.priority];
+  const wsMap = {}; websites.forEach(w=>wsMap[w.id]=w);
+  // 收集今天要处理的"步骤项"——混合模式
+  // 1. 任务级 due 在今天/逾期/近3天 → 列出该任务所有未完成步骤
+  // 2. 步骤级 due 在今天/逾期/近3天，且任务整体 due 不在范围内 → 只列那个步骤
+  const items = [];
+  const seenStepIds = new Set(); // step.id 去重
+  tasks.forEach(task => {
+    if(allDone(task)) return;
+    const taskDueIn = task.due ? daysBetween(t, task.due) : 9999;
+    const taskDueOver = taskDueIn <= 3;
+    // 任务级到期 → 所有未完成步骤
+    if(taskDueOver){
+      task.steps.forEach(s => {
+        if(s.done) return;
+        if(seenStepIds.has(s.id)) return;
+        items.push({ task, step: s, due: task.due, dueSource: 'task' });
+        seenStepIds.add(s.id);
+      });
+    }
+    // 步骤级到期（任务整体没到期）→ 只列那个步骤
+    if(!taskDueOver){
+      task.steps.forEach(s => {
+        if(s.done || !s.due) return;
+        if(daysBetween(t, s.due) > 3) return;
+        if(seenStepIds.has(s.id)) return;
+        items.push({ task, step: s, due: s.due, dueSource: 'step' });
+        seenStepIds.add(s.id);
+      });
+    }
+  });
+  // 排序：逾期在前，再按优先级，再按日期
+  items.sort((a,b) => {
+    const ao = daysBetween(t, a.due) < 0 ? 0 : 1;
+    const bo = daysBetween(t, b.due) < 0 ? 0 : 1;
+    if(ao !== bo) return ao - bo;
+    const pr = {P0:0, P1:1, P2:2};
+    if(pr[a.task.priority] !== pr[b.task.priority]) return pr[a.task.priority] - pr[b.task.priority];
     return a.due.localeCompare(b.due);
   });
 
-  const over = items.filter(x=>daysBetween(t,x.due)<0).length;
-  const todayN = items.filter(x=>daysBetween(t,x.due)===0).length;
-  const soon = items.filter(x=>daysBetween(t,x.due)>0).length;
+  const over = items.filter(x => daysBetween(t, x.due) < 0).length;
+  const todayN = items.filter(x => daysBetween(t, x.due) === 0).length;
+  const soon = items.filter(x => daysBetween(t, x.due) > 0).length;
 
-  const wsMap = {}; websites.forEach(w=>wsMap[w.id]=w);
   let html = `
     <div class="today-head">
       <h2>
@@ -1093,22 +1134,27 @@ function renderToday() {
     </div>`;
   } else {
     html += '<div class="today-list">';
-    items.forEach(x => {
-      const ws = wsMap[x.websiteId];
-      const r = relDue(x.due);
-      const prog = taskProgress(x);
+    items.forEach(({ task, step, due, dueSource }) => {
+      const ws = wsMap[task.websiteId];
+      const r = relDue(due);
       html += `
-        <div class="today-item ${r.cls==='over'?'over':''}" data-task="${x.id}">
-          <div class="pmark" style="background:${PCOLOR[x.priority]}"></div>
+        <div class="today-item ${r.cls==='over'?'over':''}" data-task="${task.id}" data-step-id="${step.id}">
+          <div class="pmark" style="background:${PCOLOR[task.priority]}"></div>
+          <button class="t-step-check" data-step-toggle="${step.id}" data-step-task="${task.id}" title="勾选完成">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+          </button>
           <div class="info">
-            <div class="t-title">${escapeHtml(x.title)}</div>
+            <div class="t-step-name">${escapeHtml(step.name)}</div>
             <div class="t-meta">
-              <span class="ws">${ws?escapeHtml(ws.domain||ws.name):'未分类'}</span>
-              <span>${prog.done}/${prog.total} 步</span>
+              <span class="t-task-title">${escapeHtml(task.title)}</span>
+              ${ws?`<span class="ws">${escapeHtml(ws.domain||ws.name)}</span>`:''}
+              <span class="src-tag ${dueSource}">${dueSource==='task'?'任务到期':'步骤到期'}</span>
             </div>
           </div>
           <span class="due ${r.cls}">${r.label}</span>
-          <button class="btn btn-sm btn-primary" data-quick="${x.id}">处理</button>
+          <button class="icon-btn" data-edit-task="${task.id}" title="编辑任务">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+          </button>
         </div>`;
     });
     html += '</div>';
@@ -1389,14 +1435,43 @@ function miniCard(t, wsMap){
 function renderUpcoming() {
   const wsMap = {}; websites.forEach(w=>wsMap[w.id]=w);
   const t = todayStr();
-  // 未来7天有截止的 + 已逾期的未完成，按日分组
-  const upcoming = tasks.filter(x => x.due && !allDone(x) && daysBetween(t,x.due)<=7).sort((a,b)=>a.due.localeCompare(b.due));
+  // 混合模式：任务级 due 在未来7天/逾期 → 列该任务所有未完成步骤；步骤级 due 在未来7天/逾期且任务整体不在范围内 → 只列那步骤
+  const items = [];
+  const seenStepIds = new Set();
+  tasks.forEach(task => {
+    if(allDone(task)) return;
+    const taskDueIn = task.due ? daysBetween(t, task.due) : 9999;
+    const taskInRange = taskDueIn <= 7 || taskDueIn < 0; // 逾期或7天内
+    if(taskInRange){
+      task.steps.forEach(s => {
+        if(s.done || seenStepIds.has(s.id)) return;
+        items.push({ task, step: s, due: task.due, dueSource: 'task' });
+        seenStepIds.add(s.id);
+      });
+    } else {
+      // 任务整体不在范围，但步骤可能单独到期
+      task.steps.forEach(s => {
+        if(s.done || !s.due || seenStepIds.has(s.id)) return;
+        const sd = daysBetween(t, s.due);
+        if(sd > 7 && sd >= 0) return;
+        items.push({ task, step: s, due: s.due, dueSource: 'step' });
+        seenStepIds.add(s.id);
+      });
+    }
+  });
+  // 按日期分组
   const groups = {};
-  upcoming.forEach(x => { (groups[x.due] = groups[x.due]||[]).push(x); });
-  // 也展示逾期单独一组(放到最前)
-  const overdue = tasks.filter(x => x.due && !allDone(x) && daysBetween(t,x.due)<0).sort((a,b)=>a.due.localeCompare(b.due));
+  const overdue = [];
+  items.forEach(it => {
+    const n = daysBetween(t, it.due);
+    if(n < 0) overdue.push(it);
+    else (groups[it.due] = groups[it.due] || []).push(it);
+  });
+  // 排序每组内：按任务优先级
+  const pr = {P0:0, P1:1, P2:2};
+  [overdue, ...Object.values(groups)].forEach(arr => arr.sort((a,b) => pr[a.task.priority] - pr[b.task.priority]));
 
-  if(!upcoming.length && !overdue.length) {
+  if(!items.length) {
     $('#upcoming').innerHTML = emptyState('近期', '未来7天没有安排工作，去新建一个吧');
     return;
   }
@@ -1405,17 +1480,16 @@ function renderUpcoming() {
     html += `<div class="day-group">
       <div class="day-head" style="background:var(--p0-bg)">
         <div class="dnum" style="color:var(--p0)">!</div>
-        <div class="dinfo" style="color:var(--p0)"><div>已逾期 · 需尽快处理</div><div class="dweek">${overdue.length} 项工作超出截止日期</div></div>
+        <div class="dinfo" style="color:var(--p0)"><div>已逾期 · 需尽快处理</div><div class="dweek">${overdue.length} 个步骤超出截止日期</div></div>
         <span class="dcnt" style="background:var(--p0);color:#fff;border-color:var(--p0)">${overdue.length}</span>
       </div>
       <div class="day-body">
-        ${overdue.map(x=>upItem(x,wsMap)).join('')}
+        ${overdue.map(it => upStepItem(it, wsMap)).join('')}
       </div>
     </div>`;
   }
-  // 未来7天逐日
-  for(let i=0;i<=7;i++){
-    const d = addDays(t,i);
+  for(let i=0; i<=7; i++){
+    const d = addDays(t, i);
     if(!groups[d]) continue;
     const date = parse(d);
     const week = ['日','一','二','三','四','五','六'][date.getDay()];
@@ -1424,23 +1498,31 @@ function renderUpcoming() {
         <div class="dnum">${date.getDate()}</div>
         <div class="dinfo">
           <div>${i===0?'今天':i===1?'明天':formatChineseDate(d)}</div>
-          <div class="dweek">周${week} · ${groups[d].length} 项</div>
+          <div class="dweek">周${week} · ${groups[d].length} 步</div>
         </div>
         <span class="dcnt">${groups[d].length}</span>
       </div>
-      <div class="day-body">${groups[d].map(x=>upItem(x,wsMap)).join('')}</div>
+      <div class="day-body">${groups[d].map(it => upStepItem(it, wsMap)).join('')}</div>
     </div>`;
   }
   $('#upcoming').innerHTML = html;
 }
-function upItem(x, wsMap){
-  const ws = wsMap[x.websiteId];
-  const prog = taskProgress(x);
-  return `<div class="up-item ${allDone(x)?'done':''}" data-edit="${x.id}">
-    <div class="pmark" style="background:${PCOLOR[x.priority]}"></div>
-    <div class="u-title">${escapeHtml(x.title)}</div>
-    <span class="u-ws">${ws?escapeHtml(ws.domain||ws.name):''}</span>
-    <span style="font-size:11.5px;color:var(--ink-3);font-weight:600">${prog.done}/${prog.total}</span>
+function upStepItem(it, wsMap){
+  const { task, step, dueSource } = it;
+  const ws = wsMap[task.websiteId];
+  return `<div class="up-item" data-task="${task.id}" data-step-id="${step.id}">
+    <div class="pmark" style="background:${PCOLOR[task.priority]}"></div>
+    <button class="up-step-check" data-step-toggle="${step.id}" data-step-task="${task.id}" title="勾选完成">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+    </button>
+    <div class="u-info">
+      <div class="u-step-name">${escapeHtml(step.name)}</div>
+      <div class="u-meta">
+        <span class="u-task-title">${escapeHtml(task.title)}</span>
+        ${ws?`<span class="u-ws">${escapeHtml(ws.domain||ws.name)}</span>`:''}
+      </div>
+    </div>
+    <span class="src-tag ${dueSource}">${dueSource==='task'?'任务到期':'步骤到期'}</span>
   </div>`;
 }
 
@@ -1583,14 +1665,46 @@ function bindTabs(){
     const m = e.target.closest('[data-edit]'); if(m) openQuickHandle(m.dataset.edit);
   });
   on($('#upcoming'), 'click', e => {
-    const m = e.target.closest('[data-edit]'); if(m) openQuickHandle(m.dataset.edit);
+    // 立即勾选步骤
+    const stepToggle = e.target.closest('[data-step-toggle]');
+    if(stepToggle){
+      const sid = stepToggle.dataset.stepToggle;
+      const tid = stepToggle.dataset.stepTask;
+      const task = tasks.find(x => x.id === tid);
+      if(!task) return;
+      const step = task.steps.find(s => s.id === sid);
+      if(!step) return;
+      step.done = !step.done;
+      save(K_TASKS, tasks);
+      renderAll();
+      toast(step.done ? '✓ 已完成：'+step.name : '已取消：'+step.name, 'ok');
+      return;
+    }
+    const edit = e.target.closest('[data-edit]');
+    if(edit) openTaskModal(edit.dataset.edit);
   });
   // 今日项 处理按钮
   on($('#todayBox'), 'click', e => {
-    const q = e.target.closest('[data-quick]');
-    if(q){ openQuickHandle(q.dataset.quick); return; }
-    const it = e.target.closest('[data-task]');
-    if(it){ openTaskModal(it.dataset.task); }
+    // 立即勾选步骤
+    const stepToggle = e.target.closest('[data-step-toggle]');
+    if(stepToggle){
+      const sid = stepToggle.dataset.stepToggle;
+      const tid = stepToggle.dataset.stepTask;
+      const task = tasks.find(x => x.id === tid);
+      if(!task) return;
+      const step = task.steps.find(s => s.id === sid);
+      if(!step) return;
+      step.done = !step.done;
+      save(K_TASKS, tasks);
+      // 局部更新这一条的视觉
+      stepToggle.classList.toggle('checked', step.done);
+      renderAll(); // 重渲染整个 today 区域（已完成的步骤会消失）
+      toast(step.done ? '✓ 已完成：'+step.name : '已取消：'+step.name, step.done?'ok':'ok');
+      return;
+    }
+    // 编辑任务
+    const edit = e.target.closest('[data-edit-task]');
+    if(edit){ openTaskModal(edit.dataset.editTask); return; }
   });
   // 顶部按钮
   on($('#btnNewTask'), 'click', () => openTaskModal(null));
