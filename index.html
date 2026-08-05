@@ -163,9 +163,12 @@
     background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 14px;
     box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 10px;
     transition: box-shadow .15s, transform .05s;
+    position: relative;
   }
   .task-card:hover { box-shadow: var(--shadow-lg); }
   .task-card.done { opacity: .65; }
+  .task-card.sel { box-shadow: 0 0 0 2px var(--brand), var(--shadow-lg); background: linear-gradient(135deg, #fff 0%, #fff 40%, var(--brand-bg) 100%); }
+  .task-card.sel::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--brand); border-radius: 14px 0 0 14px; }
   .tc-top { display: flex; align-items: flex-start; gap: 10px; }
   .tc-pmark { width: 4px; align-self: stretch; border-radius: 4px; flex-shrink: 0; min-height: 38px; }
   .tc-main { flex: 1; min-width: 0; }
@@ -701,39 +704,41 @@
     <button class="bb-mini" id="bbClear">取消选择</button>
     <div class="bb-sep"></div>
     <div class="bb-group">
-      <label>顺延</label>
+      <label>📅 顺延</label>
       <input type="number" id="bbShift" value="3" min="-365" max="365">
       <label>天</label>
       <button class="bb-mini" id="bbShiftApply">应用</button>
     </div>
     <div class="bb-group">
-      <label>设日期</label>
+      <label>📅 设到</label>
       <input type="date" id="bbDate">
       <button class="bb-mini" id="bbDateApply">应用</button>
     </div>
     <div class="bb-sep"></div>
     <div class="bb-group">
-      <label>优先级</label>
+      <label>⚡ 优先级</label>
       <button class="bb-mini p0" data-bp="P0">P0</button>
       <button class="bb-mini p1" data-bp="P1">P1</button>
       <button class="bb-mini p2" data-bp="P2">P2</button>
     </div>
     <div class="bb-sep"></div>
     <div class="bb-group">
-      <label>移到</label>
+      <label>📂 到</label>
       <select class="bb-select" id="bbWebsite"></select>
       <button class="bb-mini primary" id="bbMove">移动</button>
+      <button class="bb-mini" id="bbCopy">复制</button>
     </div>
     <div class="bb-sep"></div>
     <div class="bb-group">
-      <label>步骤排期</label>
-      <input type="date" id="bbStepStart" title="起始日">
-      <input type="number" id="bbStepGap" value="1" min="0" max="30" style="width:60px" title="间隔天数">
+      <label>🔁 步骤 起始</label>
+      <input type="date" id="bbStepStart">
+      <label>每步 +</label>
+      <input type="number" id="bbStepGap" value="1" min="0" max="30" style="width:50px">
       <label>天</label>
       <button class="bb-mini" id="bbStepApply">应用</button>
     </div>
     <div class="bb-sep"></div>
-    <button class="bb-mini danger" id="bbDelete">删除选中</button>
+    <button class="bb-mini danger" id="bbDelete">🗑 删除</button>
   </div>
 </div>
 
@@ -1266,6 +1271,28 @@ function batchMoveWebsite(wid) {
   clearSelection(); renderAll();
   toast('已移动 '+c+' 项到 '+ (websites.find(w=>w.id===wid)?.domain||'网站'), 'ok');
 }
+/* 批量复制：复制选中任务到目标网站，新 id + 新 createdAt，步骤也重置 id 但保留 done 状态 */
+function batchCopyWebsite(wid) {
+  if(!selectedTasks.size || !wid) return;
+  let c = 0;
+  const copies = [];
+  tasks.forEach(x => { 
+    if(selectedTasks.has(x.id)){ 
+      copies.push({
+        ...x,
+        id: uid(),
+        websiteId: wid,
+        createdAt: todayStr(),
+        steps: x.steps.map(s => ({...s, id: uid()})) // 步骤 id 重置
+      });
+      c++;
+    }
+  });
+  tasks.push(...copies);
+  save(K_TASKS, tasks);
+  clearSelection(); renderAll();
+  toast('已复制 '+c+' 项到 '+ (websites.find(w=>w.id===wid)?.domain||'网站'), 'ok');
+}
 function batchDeleteSelected() {
   if(!selectedTasks.size) return;
   const n = selectedTasks.size;
@@ -1548,6 +1575,7 @@ function bindTabs(){
   on($('#bbShiftApply'), 'click', () => { const v = parseInt($('#bbShift').value, 10); if(!isNaN(v)) batchShiftDue(v); });
   on($('#bbDateApply'), 'click', () => batchSetDate($('#bbDate').value));
   on($('#bbMove'), 'click', () => batchMoveWebsite($('#bbWebsite').value));
+  on($('#bbCopy'), 'click', () => batchCopyWebsite($('#bbWebsite').value));
   on($('#bbStepApply'), 'click', () => { const s = $('#bbStepStart').value; const g = parseInt($('#bbStepGap').value,10)||0; batchStepSchedule(s, g); });
   on($('#bbDelete'), 'click', batchDeleteSelected);
   onAll($$('#batchBar [data-bp]'), 'click', b => batchSetPriority(b.dataset.bp));
