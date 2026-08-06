@@ -50,8 +50,7 @@
     padding: 12px 20px;
     display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
   }
-  .filter-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 20px; background: #fff; border-bottom: 1px solid var(--line); }
-  .filter-hint { font-size: 12px; color: var(--ink-3); white-space: nowrap; }
+  .top-sep { width: 1px; height: 22px; background: var(--line); }
   body.show-done-on .today-task.done .tt-title { text-decoration: line-through; color: var(--ink-3); }
   body.show-done-on .today-task.done { opacity: .7; }
   .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 17px; color: var(--ink); }
@@ -506,8 +505,14 @@
   /* ===== 移动端 ===== */
   @media (max-width: 768px) {
     body { font-size: 14.5px; }
-    .topbar { padding: 10px 12px; gap: 8px; }
-    .filter-bar { padding: 8px 12px; }
+    .topbar { padding: 10px 12px; gap: 8px; flex-wrap: wrap; }
+    .top-actions { display: grid; grid-template-columns: repeat(4, 1fr) auto; gap: 8px; width: 100%; }
+    .top-sep { display: none; }
+    #btnNewTask { grid-column: 1 / -1; order: 3; justify-content: center; }
+    #btnSync, #btnTplLib, #btnExport, #btnImport { order: 1; }
+    .show-done-toggle { order: 2; justify-self: end; }
+    .show-done-toggle .sd-text { display: none; }
+    .show-done-toggle::after { content: "完成"; font-size: 11.5px; }
     .brand { font-size: 15px; }
     .brand-logo { width: 28px; height: 28px; }
     .btn { height: 34px; padding: 0 11px; font-size: 13px; }
@@ -557,34 +562,33 @@
   </div>
   <div class="topbar-spacer"></div>
   <div class="top-actions">
-    <button class="btn" id="btnSync">
+    <label class="show-done-toggle" title="切换显示/隐藏已完成任务">
+      <input type="checkbox" id="showDone">
+      <span class="sd-text">显示已完成</span>
+    </label>
+    <span class="top-sep"></span>
+    <button class="btn" id="btnSync" title="云端同步">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 17 16M21 14l-3 3-3-3"/></svg>
       <span class="label">云端同步</span>
     </button>
-    <button class="btn" id="btnTplLib">
+    <button class="btn" id="btnTplLib" title="模板库">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
       <span class="label">模板库</span>
     </button>
-    <button class="btn" id="btnExport">
+    <button class="btn" id="btnExport" title="导出备份">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
       <span class="label">导出备份</span>
     </button>
-    <button class="btn" id="btnImport">
+    <button class="btn" id="btnImport" title="导入恢复">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
       <span class="label">导入恢复</span>
     </button>
-    <button class="btn btn-primary" id="btnNewTask">
+    <button class="btn btn-primary" id="btnNewTask" title="新建工作">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
       <span class="label">新建工作</span>
     </button>
   </div>
 </header>
-<div class="filter-bar" id="filterBar">
-  <label class="show-done-toggle" title="显示已完成的任务">
-    <input type="checkbox" id="showDone">
-    <span>显示已完成</span>
-  </label>
-  <span class="filter-hint">全部面板</span>
 </div>
 
 <div class="wrap">
