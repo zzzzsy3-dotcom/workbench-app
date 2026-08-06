@@ -1320,11 +1320,13 @@ function renderTaskGrid() {
     return (a.due||'9999').localeCompare(b.due||'9999');
   });
   // 隐藏已完成：过滤掉 allDone 任务（保底加 taskDone 字段检查）
-  if(!$('#showDone').checked){
+  const showDoneEl = $('#showDone');
+  if(!showDoneEl || !showDoneEl.checked){
     wsTasks = wsTasks.filter(t => !allDone(t) && !t.taskDone);
   }
   if(!wsTasks.length) {
-    const msg = $('#showDone').checked
+    const showDone = $('#showDone')?.checked;
+    const msg = showDone
       ? '这个网站还没有任何工作内容，去新建一个吧'
       : '这个网站还没有未完成的工作内容，点右上角「新建工作」添加';
     $('#taskGrid').innerHTML = emptyState('工作', msg);
@@ -2154,9 +2156,11 @@ function bindTabs(){
   on($('#btnTplLib'), 'click', () => openTplLib());
   on($('#btnExport'), 'click', exportData);
   on($('#btnImport'), 'click', () => $('#fileInput') && $('#fileInput').click());
-  on($('#showDone'), 'change', e => {
-    document.body.classList.toggle('show-done-on', e.target.checked);
-    renderTaskGrid();
+  on($('#showDone') || document, 'change', e => {
+    if(e.target && e.target.id === 'showDone'){
+      document.body.classList.toggle('show-done-on', e.target.checked);
+      renderTaskGrid();
+    }
   });
   on($('#fileInput'), 'change', importData);
   // 云端同步
