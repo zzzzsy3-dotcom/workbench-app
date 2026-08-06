@@ -152,11 +152,26 @@
 
   /* ===== 网站工作区 ===== */
   .ws-tabs {
+    position: relative;
     display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 16px;
     -webkit-overflow-scrolling: touch; scrollbar-width: thin;
   }
   .ws-tabs::-webkit-scrollbar { height: 4px; }
   .ws-tabs::-webkit-scrollbar-thumb { background: var(--line); border-radius: 4px; }
+  .ws-dropdown { position: absolute; left: 0; right: 0; top: 100%; z-index: 50; background: #fff; border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow-lg); padding: 6px; margin-top: 4px; max-height: 60vh; overflow-y: auto; }
+  .ws-dropdown[hidden] { display: none; }
+  .ws-dropdown button { display: flex; align-items: center; gap: 8px; width: 100%; padding: 10px 12px; border: none; border-radius: 8px; background: transparent; cursor: pointer; font-size: 14px; text-align: left; color: var(--ink); }
+  .ws-dropdown button:hover { background: var(--line-2); }
+  .ws-dropdown button.active { background: var(--brand-bg); color: var(--brand); font-weight: 600; }
+  .ws-dropdown button .dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+  .ws-dropdown button .cnt { margin-left: auto; font-size: 11px; background: var(--line-2); color: var(--ink-3); padding: 1px 7px; border-radius: 999px; font-weight: 700; }
+  .ws-dropdown-toggle { display: none; }
+  @media (max-width: 768px) {
+    .ws-tabs { overflow-x: visible; }
+    .ws-tab:not(.add):not(.ws-dropdown-toggle) { display: none; }
+    .ws-tab.active { display: flex !important; }
+    .ws-dropdown-toggle { display: flex; }
+  }
   .ws-tab {
     display: flex; align-items: center; gap: 8px; height: 38px; padding: 0 14px;
     border-radius: 10px; background: #fff; border: 1px solid var(--line);
@@ -361,6 +376,13 @@
   .up-task-title { font-size: 14px; font-weight: 600; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .up-ws { font-size: 11px; color: var(--brand-d); font-weight: 600; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
   .up-task-steps { display: flex; flex-direction: column; gap: 2px; padding-left: 12px; }
+  .up-ws-group { padding: 4px 0; }
+  .up-ws-group:not(:last-child) { border-bottom: 1px solid var(--line); }
+  .up-ws-head { display: flex; align-items: center; gap: 6px; padding: 4px 8px; margin-bottom: 4px; }
+  .up-ws-head .dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+  .up-ws-name { font-size: 12px; font-weight: 700; color: var(--ink); }
+  .up-ws-cnt { margin-left: auto; font-size: 10.5px; font-weight: 700; color: var(--ink-3); background: var(--line-2); padding: 1px 7px; border-radius: 999px; }
+  .up-ws-steps { display: flex; flex-direction: column; gap: 2px; padding-left: 12px; }
   .up-step { display: flex; align-items: center; gap: 8px; padding: 5px 8px; border-radius: 6px; cursor: pointer; transition: background .1s; }
   .up-step:hover { background: var(--line-2); }
   .up-step-check { width: 20px; height: 20px; border-radius: 5px; border: 1.5px solid var(--line-2); display: grid; place-items: center; color: transparent; flex-shrink: 0; transition: all .12s; background: #fff; }
@@ -370,6 +392,11 @@
   .up-step.done .up-step-name { text-decoration: line-through; color: var(--ink-3); }
   .step-skip { font-size: 10.5px; font-weight: 700; padding: 2px 6px; border-radius: 5px; background: var(--line-2); color: var(--ink-3); white-space: nowrap; }
   /* 今天要处理：任务行+折叠步骤 */
+  .today-ws-group { margin-bottom: 14px; }
+  .tws-head { display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: var(--line-2); border-radius: 8px; margin-bottom: 6px; }
+  .tws-head .dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+  .tws-name { font-size: 13px; font-weight: 700; color: var(--ink); }
+  .tws-cnt { margin-left: auto; font-size: 11px; font-weight: 700; color: var(--ink-3); background: #fff; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--line); }
   .today-task { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: #fff; margin-bottom: 6px; flex-wrap: wrap; transition: border-color .12s; }
   .today-task.over { border-color: var(--p0); background: #FFFBFB; }
   .today-task:hover { border-color: var(--brand); }
@@ -1186,32 +1213,38 @@ function renderToday() {
       棒！近期没有逾期或紧急的工作，可以去看看全部工作内容。
     </div>`;
   } else {
+    // 按网站分组
+    const byWs = {};
+    items.forEach(it => {
+      const wsId = it.task.websiteId || '__none__';
+      (byWs[wsId] = byWs[wsId] || []).push(it);
+    });
+    const wsIds = Object.keys(byWs).sort((a, b) => {
+      if(a === '__none__') return 1;
+      if(b === '__none__') return -1;
+      const wsA = wsMap[a]; const wsB = wsMap[b];
+      return (wsA?.domain || wsA?.name || '').localeCompare(wsB?.domain || wsB?.name || '');
+    });
     html += '<div class="today-list">';
-    items.forEach(({ task, due }) => {
-      const ws = wsMap[task.websiteId];
-      const r = due ? relDue(due) : { cls: '', label: '无截止' };
-      const prog = taskProgress(task);
-      const over = due && daysBetween(t, due) < 0;
-      const expanded = expandedTasks.has(task.id);
-      html += `
-        <div class="today-task ${over?'over':''} ${expanded?'expanded':''}" data-task="${task.id}">
-          <div class="tt-row" data-toggle-task="${task.id}">
-            <span class="tt-expand">${expanded?'▼':'▶'}</span>
-            <div class="pmark" style="background:${PCOLOR[task.priority]}"></div>
-            <span class="tt-title">${escapeHtml(task.title)}</span>
-            <span class="tt-meta">
-              ${ws?`<span class="ws">${escapeHtml(ws.domain||ws.name)}</span>`:''}
-              <span>${prog.done}/${prog.total}</span>
-            </span>
-            <span class="due ${r.cls}">${r.label}</span>
-          </div>
-          <button class="icon-btn" data-edit-task="${task.id}" title="编辑">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
-          </button>
-          <div class="tt-steps" ${expanded?'':'hidden'}>
-            ${sortStepsForDisplay(task.steps).map(s => renderTodayStep(s, task.id)).join('') || '<div style="padding:8px;color:var(--ink-3);font-size:13px">无步骤</div>'}
-          </div>
-        </div>`;
+    wsIds.forEach(wsId => {
+      const ws = wsMap[wsId];
+      const webName = wsId === '__none__' ? '未分类' : (ws?.domain || ws?.name || '已删除');
+      const wsItems = byWs[wsId];
+      html += '<div class="today-ws-group">';
+      html += '<div class="tws-head"><span class="dot" style="background:' + (ws?.color || '#888') + '"></span><span class="tws-name">' + escapeHtml(webName) + '</span><span class="tws-cnt">' + wsItems.length + ' 项</span></div>';
+      wsItems.forEach(({ task, due }) => {
+        const r = due ? relDue(due) : { cls: '', label: '无截止' };
+        const prog = taskProgress(task);
+        const over = due && daysBetween(t, due) < 0;
+        const expanded = expandedTasks.has(task.id);
+        html += '<div class="today-task ' + (over?'over':'') + ' ' + (expanded?'expanded':'') + '" data-task="' + task.id + '">';
+        html += '<div class="tt-row" data-toggle-task="' + task.id + '"><span class="tt-expand">' + (expanded?'▼':'▶') + '</span><div class="pmark" style="background:' + PCOLOR[task.priority] + '"></div><span class="tt-title">' + escapeHtml(task.title) + '</span><span class="tt-meta"><span>' + prog.done + '/' + prog.total + '</span></span><span class="due ' + r.cls + '">' + r.label + '</span></div>';
+        html += '<button class="icon-btn" data-edit-task="' + task.id + '" title="编辑"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg></button>';
+        html += '<div class="tt-steps" ' + (expanded?'':'hidden') + '>';
+        html += sortStepsForDisplay(task.steps).map(s => renderTodayStep(s, task.id)).join('') || '<div style="padding:8px;color:var(--ink-3);font-size:13px">无步骤</div>';
+        html += '</div></div>';
+      });
+      html += '</div>';
     });
     html += '</div>';
   }
@@ -1245,14 +1278,20 @@ function renderWsTabs() {
     // 主显示域名；名字放 tooltip
     const main = w.domain ? w.domain : w.name;
     return `<button class="ws-tab ${w.id===activeWs?'active':''}" data-ws="${w.id}" title="${escapeHtml(w.name)}${w.domain && w.domain!==w.name ? '\n'+escapeHtml(w.name) : ''}">
-      <span class="dot" style="background:${w.color}"></span>${escapeHtml(main)}
+      <span class="dot" style="background:${w.color}"></span><span class="ws-name">${escapeHtml(main)}</span>
       <span class="cnt">${n}</span>
     </button>`;
   }).join('');
   html += `<button class="ws-tab add" id="wsAdd">
     <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
-    新建网站
+    <span class="ws-tab-label">新建网站</span>
   </button>`;
+  // 移动端下拉箭头按钮（仅移动端可见）
+  html += `<button class="ws-tab ws-dropdown-toggle" id="wsDropdownToggle" title="切换网站">
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+  </button>`;
+  // 下拉容器（默认隐藏）
+  html += '<div class="ws-dropdown" id="wsDropdown" hidden></div>';
   // 如果有隐藏的网站，加"管理网站"按钮
   if(websites.some(w => w.hidden)){
     html += `<button class="ws-tab add" id="wsManage" title="管理隐藏/归档的网站" style="color:var(--ink-3)">
@@ -1598,7 +1637,7 @@ function renderUpcoming() {
   let html = '';
   if(overdue.length) {
     const exp = expandedUpcoming.has('__overdue__');
-    html += '<div class="day-group"><div class="day-head ' + (exp?'':'collapsed') + '" style="background:var(--p0-bg)" data-toggle-day="__overdue__"><div class="dnum" style="color:var(--p0)">' + (exp?'▾':'▸') + '</div><div class="dinfo" style="color:var(--p0)"><div>已逾期 · 需尽快处理</div><div class="dweek">' + overdue.length + ' 个步骤</div></div><span class="dcnt" style="background:var(--p0);color:#fff;border-color:var(--p0)">' + overdue.length + '</span></div><div class="day-body" ' + (exp?'':'hidden') + '>' + renderDayBody(overdue, wsMap) + '</div></div>';
+    html += '<div class="day-group"><div class="day-head ' + (exp?'':'collapsed') + '" style="background:var(--p0-bg)" data-toggle-day="__overdue__"><div class="dnum" style="color:var(--p0)">' + (exp?'▾':'▸') + '</div><div class="dinfo" style="color:var(--p0)"><div>已逾期 · 需尽快处理</div><div class="dweek">' + overdue.length + ' 个步骤</div></div><span class="dcnt" style="background:var(--p0);color:#fff;border-color:var(--p0)">' + overdue.length + '</span></div><div class="day-body" ' + (exp?'':'hidden') + '>' + renderDayBodyByWs(overdue, wsMap) + '</div></div>';
   }
   for(let i=0; i<=15; i++){
     const d = addDays(t, i);
@@ -1606,9 +1645,32 @@ function renderUpcoming() {
     const date = parse(d);
     const week = ['日','一','二','三','四','五','六'][date.getDay()];
     const exp = expandedUpcoming.has(d);
-    html += '<div class="day-group"><div class="day-head ' + (i===0?'today':'') + ' ' + (exp?'':'collapsed') + '" data-toggle-day="' + d + '"><div class="dnum">' + (exp?'▾':'▸') + '</div><div class="dinfo"><div>' + (i===0?'今天':i===1?'明天':formatChineseDate(d)) + '</div><div class="dweek">周' + week + ' · ' + groups[d].length + ' 步</div></div><span class="dcnt">' + groups[d].length + '</span></div><div class="day-body" ' + (exp?'':'hidden') + '>' + renderDayBody(groups[d], wsMap) + '</div></div>';
+    html += '<div class="day-group"><div class="day-head ' + (i===0?'today':'') + ' ' + (exp?'':'collapsed') + '" data-toggle-day="' + d + '"><div class="dnum">' + (exp?'▾':'▸') + '</div><div class="dinfo"><div>' + (i===0?'今天':i===1?'明天':formatChineseDate(d)) + '</div><div class="dweek">周' + week + ' · ' + groups[d].length + ' 步</div></div><span class="dcnt">' + groups[d].length + '</span></div><div class="day-body" ' + (exp?'':'hidden') + '>' + renderDayBodyByWs(groups[d], wsMap) + '</div></div>';
   }
   $('#upcoming').innerHTML = html;
+}
+
+/* 近期工作一天的内容：按网站分组，每个网站下面是当天的步骤 */
+function renderDayBodyByWs(items, wsMap){
+  const byWs = {};
+  items.forEach(it => {
+    const wsId = it.task.websiteId || '__none__';
+    (byWs[wsId] = byWs[wsId] || []).push(it);
+  });
+  const wsIds = Object.keys(byWs).sort((a, b) => {
+    if(a === '__none__') return 1;
+    if(b === '__none__') return -1;
+    const wsA = wsMap[a]; const wsB = wsMap[b];
+    return (wsA?.domain || wsA?.name || '').localeCompare(wsB?.domain || wsB?.name || '');
+  });
+  let html = '';
+  wsIds.forEach(wsId => {
+    const ws = wsMap[wsId];
+    const webName = wsId === '__none__' ? '未分类' : (ws?.domain || ws?.name || '已删除');
+    const wsItems = byWs[wsId];
+    html += '<div class="up-ws-group"><div class="up-ws-head"><span class="dot" style="background:' + (ws?.color || '#888') + '"></span><span class="up-ws-name">' + escapeHtml(webName) + '</span><span class="up-ws-cnt">' + wsItems.length + '</span></div><div class="up-ws-steps">' + wsItems.map(it => renderUpStep(it)).join('') + '</div></div>';
+  });
+  return html;
 }
 function renderDayBody(items, wsMap){
   const byTask = {};
@@ -1745,7 +1807,7 @@ function bindTabs(){
   // 网站Tab切换
   on($('#wsTabs'), 'click', e => {
     const tab = e.target.closest('[data-ws]');
-    if(tab){ activeWs = tab.dataset.ws; save(K_ACTIVE_WS, activeWs); renderWsTabs(); renderWsHead(); renderTaskGrid(); return; }
+    if(tab){ activeWs = tab.dataset.ws; save(K_ACTIVE_WS, activeWs); renderWsTabs(); renderWsHead(); renderTaskGrid(); setTimeout(scrollActiveWsTabIntoView, 50); return; }
     if(e.target.closest('#wsAdd')){ openWsModal(); }
   });
   // 双击/右键网站 Tab → 进入编辑弹窗
@@ -1776,7 +1838,34 @@ function bindTabs(){
   // 网站管理入口
   on($('#wsTabs'), 'click', e => {
     if(e.target.closest('#wsManage')){ openWsManage(); return; }
+    const dropdownToggle = e.target.closest('#wsDropdownToggle');
+    if(dropdownToggle){ toggleWsDropdown(); return; }
+    const dropdownItm = e.target.closest('#wsDropdown button[data-ws]');
+    if(dropdownItm){
+      activeWs = dropdownItm.dataset.ws; save(K_ACTIVE_WS, activeWs);
+      renderWsTabs(); renderWsHead(); renderTaskGrid();
+      $('#wsDropdown').hidden = true;
+      return;
+    }
   }, true); // capture 模式，先于其他 wsTabs click
+
+  // 移动端 wsTabs 下拉
+  function toggleWsDropdown(){
+    const dd = $('#wsDropdown');
+    if(!dd.hidden){ dd.hidden = true; return; }
+    // 填充 dropdown 内容
+    dd.innerHTML = websites.filter(w => !w.hidden).map(w => {
+      const n = tasks.filter(t => t.websiteId === w.id && !allDone(t)).length;
+      const main = w.domain ? w.domain : w.name;
+      return '<button data-ws="' + w.id + '" class="' + (w.id === activeWs ? 'active' : '') + '"><span class="dot" style="background:' + w.color + '"></span><span class="ws-name">' + escapeHtml(main) + '</span><span class="cnt">' + n + '</span></button>';
+    }).join('');
+    dd.hidden = false;
+  }
+  // PC 端 active tab 自动滚到可视区
+  function scrollActiveWsTabIntoView(){
+    const tab = $('#wsTabs .ws-tab.active');
+    if(tab && tab.scrollIntoView) tab.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+  }
   // 网站管理里的恢复/隐藏
   on($('#wsManageBody'), 'click', e => {
     const restore = e.target.closest('[data-restore-ws]');
