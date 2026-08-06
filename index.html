@@ -1291,11 +1291,16 @@ function renderWsHead() {
   const doneN = wsTasks.filter(allDone).length;
   const total = wsTasks.length;
   const pct = total ? Math.round(doneN/total*100) : 0;
+  const showDoneChecked = document.body.classList.contains('show-done-on');
   $('#wsHead').innerHTML = `
     <div style="display:flex;flex-direction:column;gap:2px">
       <h3><span class="dot" style="display:inline-block;width:12px;height:12px;border-radius:3px;background:${w.color}"></span>${escapeHtml(w.name)}</h3>
       ${w.domain?`<span class="domain" style="font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px;color:var(--brand-d);font-weight:600;padding-left:20px">${escapeHtml(w.domain)}</span>`:''}
     </div>
+    <label class="show-done-toggle" title="显示已完成的任务">
+      <input type="checkbox" id="showDone" ${showDoneChecked?'checked':''}>
+      <span>显示已完成</span>
+    </label>
     <span class="ws-progress">
       <svg viewBox="0 0 36 36" width="32" height="32">
         <circle cx="18" cy="18" r="15" fill="none" stroke="var(--line-2)" stroke-width="4"/>
