@@ -1668,7 +1668,21 @@ function renderDayBodyByWs(items, wsMap){
     const ws = wsMap[wsId];
     const webName = wsId === '__none__' ? '未分类' : (ws?.domain || ws?.name || '已删除');
     const wsItems = byWs[wsId];
-    html += '<div class="up-ws-group"><div class="up-ws-head"><span class="dot" style="background:' + (ws?.color || '#888') + '"></span><span class="up-ws-name">' + escapeHtml(webName) + '</span><span class="up-ws-cnt">' + wsItems.length + '</span></div><div class="up-ws-steps">' + wsItems.map(it => renderUpStep(it)).join('') + '</div></div>';
+    html += '<div class="up-ws-group"><div class="up-ws-head"><span class="dot" style="background:' + (ws?.color || '#888') + '"></span><span class="up-ws-name">' + escapeHtml(webName) + '</span><span class="up-ws-cnt">' + wsItems.length + '</span></div><div class="up-ws-tasks">';
+    // 网站下面按任务分组，每个任务下面是步骤（跟原 renderDayBody 一样，但不显示网站名）
+    const byTask = {};
+    wsItems.forEach(it => { (byTask[it.task.id] = byTask[it.task.id] || []).push(it); });
+    const pr = {P0:0, P1:1, P2:2};
+    Object.keys(byTask).sort((a, b) => {
+      const ta = byTask[a][0].task; const tb = byTask[b][0].task;
+      if(pr[ta.priority] !== pr[tb.priority]) return pr[ta.priority] - pr[tb.priority];
+      return 0;
+    }).forEach(tid => {
+      const taskItems = byTask[tid];
+      const task = taskItems[0].task;
+      html += '<div class="up-task"><div class="up-task-head"><div class="pmark" style="background:' + PCOLOR[task.priority] + '"></div><span class="up-task-title">' + escapeHtml(task.title) + '</span></div><div class="up-task-steps">' + taskItems.map(it => renderUpStep(it)).join('') + '</div></div>';
+    });
+    html += '</div></div>';
   });
   return html;
 }
