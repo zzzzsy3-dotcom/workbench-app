@@ -153,13 +153,19 @@
   .pane { display: none; }
   .pane.active { display: block; }
 
-  /* ===== 网站工作区 ===== */
-  .ws-tabs {
-    position: relative;
-    display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 16px;
-    -webkit-overflow-scrolling: touch; scrollbar-width: thin;
+  /* ===== 网站工作区：左栏竖向导航 + 右栏内容 ===== */
+  .ws-layout { display: flex; gap: 18px; align-items: flex-start; }
+  .ws-side {
+    width: 212px; flex-shrink: 0; position: sticky; top: 56px;
+    max-height: calc(100vh - 78px); overflow-y: auto;
+    background: #fafbfc; border: 1px solid var(--line); border-radius: 12px; padding: 12px 10px;
   }
-  .ws-tabs::-webkit-scrollbar { height: 4px; }
+  .ws-side-title { font-size: 13px; font-weight: 600; color: var(--ink-3); padding: 2px 6px 10px; }
+  .ws-main { flex: 1; min-width: 0; }
+  .ws-tabs {
+    display: flex; flex-direction: column; gap: 4px; overflow-x: visible; padding-bottom: 0; margin-bottom: 0;
+  }
+  .ws-tabs::-webkit-scrollbar { width: 4px; }
   .ws-tabs::-webkit-scrollbar-thumb { background: var(--line); border-radius: 4px; }
   .ws-dropdown { position: absolute; left: 0; right: 0; top: 100%; z-index: 50; background: #fff; border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow-lg); padding: 6px; margin-top: 4px; max-height: 60vh; overflow-y: auto; }
   .ws-dropdown[hidden] { display: none; }
@@ -170,22 +176,25 @@
   .ws-dropdown button .cnt { margin-left: auto; font-size: 11px; background: var(--line-2); color: var(--ink-3); padding: 1px 7px; border-radius: 999px; font-weight: 700; }
   .ws-dropdown-toggle { display: none; }
   @media (max-width: 768px) {
-    .ws-tabs { overflow-x: visible; }
+    .ws-layout { display: block; }
+    .ws-side { width: auto; position: static; max-height: none; overflow: visible; background: none; border: none; border-radius: 0; padding: 0; margin-bottom: 14px; }
+    .ws-side-title { display: none; }
+    .ws-tabs { flex-direction: row; gap: 8px; overflow-x: auto; padding-bottom: 4px; }
     .ws-tab:not(.add):not(.ws-dropdown-toggle) { display: none; }
     .ws-tab.active { display: flex !important; }
     .ws-dropdown-toggle { display: flex; }
   }
   .ws-tab {
-    display: flex; align-items: center; gap: 8px; height: 38px; padding: 0 14px;
+    display: flex; align-items: center; gap: 8px; width: 100%; height: 40px; padding: 0 12px;
     border-radius: 10px; background: #fff; border: 1px solid var(--line);
     font-size: 14px; font-weight: 600; color: var(--ink-2); white-space: nowrap;
-    flex-shrink: 0;
+    flex-shrink: 0; cursor: pointer; text-align: left;
   }
   .ws-tab .dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
-  .ws-tab .cnt { font-size: 11px; background: var(--line-2); color: var(--ink-3); padding: 1px 7px; border-radius: 999px; font-weight: 700; }
-  .ws-tab.active { background: var(--brand); border-color: var(--brand); color: #fff; }
-  .ws-tab.active .cnt { background: rgba(255,255,255,.22); color: #fff; }
-  .ws-tab.add { border-style: dashed; color: var(--ink-3); }
+  .ws-tab .cnt { font-size: 11px; background: var(--line-2); color: var(--ink-3); padding: 1px 7px; border-radius: 999px; font-weight: 700; margin-left: auto; }
+  .ws-tab.active { background: var(--brand-bg); border-color: transparent; color: var(--brand); font-weight: 600; box-shadow: inset 3px 0 0 var(--brand); }
+  .ws-tab.active .cnt { background: var(--brand-bg); color: var(--brand); }
+  .ws-tab.add { border-style: dashed; color: var(--ink-3); margin-top: 4px; }
   .ws-head { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
   .ws-head h3 { font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
   .ws-head .domain { color: var(--ink-3); font-size: 13px; font-weight: 500; }
@@ -193,6 +202,10 @@
 
   /* 任务卡片网格 */
   .task-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; }
+  /* 网站面板：单列占满 + 子步骤 2 列 */
+  #pane-sites .task-grid { grid-template-columns: 1fr; gap: 14px; }
+  #pane-sites .task-card .steps { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 22px; }
+  #pane-sites .task-card .step-add { grid-column: 1 / -1; }
   .task-card {
     background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 14px;
     box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 10px;
@@ -526,6 +539,7 @@
     .maintab .label { display: none; }
     .maintab.active .label { display: inline; }
     .task-grid { grid-template-columns: 1fr; gap: 10px; }
+    #pane-sites .task-card .steps { grid-template-columns: 1fr; gap: 4px; }
     .task-card { padding: 12px; border-radius: 12px; }
     .board { grid-template-columns: 1fr; gap: 10px; }
     .field-row { grid-template-columns: 1fr; }
@@ -607,9 +621,16 @@
 
   <!-- 网站工作区 -->
   <section class="pane" id="pane-sites">
-    <div class="ws-tabs" id="wsTabs"></div>
-    <div class="ws-head" id="wsHead"></div>
-    <div class="task-grid" id="taskGrid"></div>
+    <div class="ws-layout">
+      <aside class="ws-side">
+        <div class="ws-side-title">网站</div>
+        <div class="ws-tabs" id="wsTabs"></div>
+      </aside>
+      <div class="ws-main">
+        <div class="ws-head" id="wsHead"></div>
+        <div class="task-grid" id="taskGrid"></div>
+      </div>
+    </div>
   </section>
 
   <!-- 优先级看板 -->
