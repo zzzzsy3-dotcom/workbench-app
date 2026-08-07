@@ -235,6 +235,12 @@
   .tc-title { font-weight: 700; font-size: 15px; line-height: 1.4; word-break: break-word; }
   .tc-card.done .tc-title { text-decoration: line-through; color: var(--ink-3); }
   .tc-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; align-items: center; }
+  .tc-meta .pr-line { display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px; color: var(--ink-2); font-weight: 600; }
+  .tc-meta .pr-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .tc-meta .due { font-size: 12.5px; color: var(--ink-3); }
+  .tc-meta .due.over { color: var(--p0); font-weight: 600; }
+  .tc-meta .due.today { color: #92400E; font-weight: 600; }
+  .tc-meta .due.soon { color: var(--brand-d); }
   .tag { font-size: 11.5px; font-weight: 600; padding: 2px 8px; border-radius: 999px; display: inline-flex; align-items: center; gap: 4px; }
   .tag-p0 { background: var(--p0-bg); color: var(--p0); }
   .tag-p1 { background: var(--p1-bg); color: #92400E; }
@@ -383,15 +389,17 @@
   /* ===== 近期工作 ===== */
   .upcoming { display: flex; flex-direction: column; gap: 10px; }
   .day-group { background: #fff; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow); }
-  .day-head { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--line-2); border-bottom: 1px solid var(--line); cursor: pointer; user-select: none; transition: background .12s; }
-  .day-head:hover { background: #E5E3DC; }
+  .day-head { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: #fff; border-bottom: 1px solid var(--line); cursor: pointer; user-select: none; transition: background .12s; }
+  .day-head:hover { background: var(--line-2); }
   .day-head.collapsed { background: #fff; border-bottom-color: transparent; }
-  .day-head .dnum { font-size: 18px; font-weight: 800; line-height: 1; }
+  .day-head .dnum { font-size: 18px; font-weight: 800; line-height: 1; width: 16px; text-align: center; }
   .day-head .dinfo { font-size: 12.5px; color: var(--ink-2); font-weight: 600; }
   .day-head .dinfo .dweek { color: var(--ink-3); font-weight: 500; }
   .day-head .dcnt { margin-left: auto; font-size: 12px; font-weight: 700; color: var(--ink-3); background: #fff; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--line); }
-  .day-head.today { background: var(--brand-bg); }
+  .day-head.today { border-left: 3px solid var(--brand); }
   .day-head.today .dnum, .day-head.today .dinfo { color: var(--brand-d); }
+  .day-head.over { border-left: 3px solid var(--p0); }
+  .day-head.over .dnum, .day-head.over .dinfo { color: var(--p0); }
   .day-body { padding: 6px; }
   .up-item { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 8px; transition: background .1s; cursor: default; }
   .up-item:hover { background: var(--line-2); }
@@ -425,16 +433,24 @@
   .tws-head .dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
   .tws-name { font-size: 13px; font-weight: 700; color: var(--ink); }
   .tws-cnt { margin-left: auto; font-size: 11px; font-weight: 700; color: var(--ink-3); background: #fff; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--line); }
-  .today-task { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: #fff; margin-bottom: 6px; flex-wrap: wrap; transition: border-color .12s; }
+  .today-task { display: flex; align-items: flex-start; gap: 6px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; background: #fff; margin-bottom: 8px; flex-wrap: wrap; transition: border-color .12s; }
   .today-task.over { border-color: var(--p0); background: #FFFBFB; }
   .today-task:hover { border-color: var(--brand); }
-  .tt-row { display: flex; align-items: center; gap: 8px; flex: 1; cursor: pointer; min-width: 0; }
-  .tt-expand { font-size: 11px; color: var(--ink-3); flex-shrink: 0; width: 14px; text-align: center; transition: transform .15s; }
+  .tt-row { display: flex; align-items: flex-start; gap: 8px; flex: 1; cursor: pointer; min-width: 0; }
+  .tt-expand { color: var(--ink-3); flex-shrink: 0; width: 14px; text-align: center; margin-top: 3px; transition: transform .15s; }
   .today-task.expanded .tt-expand { transform: rotate(90deg); }
-  .tt-row .pmark { width: 4px; height: 24px; border-radius: 3px; flex-shrink: 0; }
-  .tt-title { font-weight: 600; font-size: 14.5px; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .tt-meta { font-size: 12px; color: var(--ink-3); display: flex; gap: 6px; white-space: nowrap; }
+  .tt-row .pmark { width: 4px; height: 22px; border-radius: 3px; flex-shrink: 0; margin-top: 3px; }
+  .tt-body { flex: 1; min-width: 0; }
+  .tt-title { font-weight: 600; font-size: 15px; line-height: 1.4; word-break: break-word; }
+  .tt-meta { font-size: 12.5px; color: var(--ink-3); display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-top: 4px; }
   .tt-meta .ws { color: var(--brand-d); font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 11.5px; font-weight: 600; }
+  .tt-meta .sep { color: var(--line-2); }
+  .tt-meta .due { font-weight: 600; }
+  .tt-meta .due.over { color: var(--p0); }
+  .tt-meta .due.today { color: #92400E; }
+  .tt-meta .due.soon { color: var(--brand-d); }
+  .tt-edit { display: none; }
+  .today-task:hover .tt-edit { display: grid; }
   .today-task .icon-btn { width: 30px; height: 30px; border-radius: 8px; border: none; background: transparent; color: var(--ink-3); cursor: pointer; display: grid; place-items: center; flex-shrink: 0; }
   .today-task .icon-btn:hover { background: var(--line-2); color: var(--ink); }
   .today-task .icon-btn svg { width: 15px; height: 15px; }
@@ -1273,8 +1289,8 @@ function renderToday() {
         const over = due && daysBetween(t, due) < 0;
         const expanded = expandedTasks.has(task.id);
         html += '<div class="today-task ' + (over?'over':'') + ' ' + (expanded?'expanded':'') + ' ' + ((allDone(task)||task.taskDone)?'done':'') + '" data-task="' + task.id + '">';
-        html += '<div class="tt-row" data-toggle-task="' + task.id + '"><span class="tt-expand"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span><div class="pmark" style="background:' + PCOLOR[task.priority] + '"></div><span class="tt-title">' + escapeHtml(task.title) + '</span><span class="tt-meta"><span>' + prog.done + '/' + prog.total + '</span></span><span class="due ' + r.cls + '">' + r.label + '</span></div>';
-        html += '<button class="icon-btn" data-edit-task="' + task.id + '" title="编辑"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg></button>';
+        html += '<div class="tt-row" data-toggle-task="' + task.id + '"><span class="tt-expand"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span><div class="pmark" style="background:' + PCOLOR[task.priority] + '"></div><div class="tt-body"><div class="tt-title">' + escapeHtml(task.title) + '</div><div class="tt-meta"><span class="ws">' + escapeHtml(webName) + '</span><span class="sep">·</span><span>' + prog.done + '/' + prog.total + '</span>' + (r.label && r.label!=='无截止' ? '<span class="due ' + r.cls + '">· ' + r.label + '</span>' : '') + '</div></div></div>';
+        html += '<button class="icon-btn tt-edit" data-edit-task="' + task.id + '" title="编辑"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg></button>';
         html += '<div class="tt-steps" ' + (expanded?'':'hidden') + '>';
         html += sortStepsForDisplay(task.steps).map(s => renderTodayStep(s, task.id)).join('') || '<div style="padding:8px;color:var(--ink-3);font-size:13px">无步骤</div>';
         html += '</div></div>';
@@ -1420,8 +1436,8 @@ function renderTaskCard(x) {
         <div class="tc-main">
           <div class="tc-title">${escapeHtml(x.title)}</div>
           <div class="tc-meta">
-            <span class="tag tag-${x.priority.toLowerCase()}">${x.priority} ${PNAME[x.priority]}</span>
-            ${x.due?`<span class="tag tag-due ${r.cls}">${formatShort(x.due)} · ${r.label}</span>`:'<span class="tag tag-due">无截止</span>'}
+            <span class="pr-line"><span class="pr-dot" style="background:${PCOLOR[x.priority]}"></span>${x.priority} ${PNAME[x.priority]}</span>
+            ${x.due?`<span class="due ${r.cls}">${formatShort(x.due)} ${r.label}</span>`:''}
           </div>
         </div>
         <div class="tc-actions">
@@ -1601,16 +1617,11 @@ function miniCard(t, wsMap){
   const ws = wsMap[t.websiteId];
   const prog = taskProgress(t);
   const r = relDue(t.due);
-  const tag = r.cls==='over' ? '<span class="mc-tag" style="background:var(--p0-bg);color:var(--p0)">逾期</span>'
-            : r.cls==='today' ? '<span class="mc-tag">今天到期</span>' : '';
   return `<div class="mini-card ${allDone(t)?'done':''}" style="border-left-color:${PCOLOR[t.priority]}" data-edit="${t.id}" draggable="true" data-drag-task="${t.id}">
-    <div class="mc-top">
-      <div class="mc-title">${escapeHtml(t.title)}</div>
-      ${tag}
-    </div>
+    <div class="mc-title">${escapeHtml(t.title)}</div>
     <div class="mc-meta">
       <span class="ws">${ws?escapeHtml(ws.domain||ws.name):'未分类'}</span>
-      ${t.due?`<span class="due ${r.cls}">${r.label}</span>`:'<span>无截止</span>'}
+      ${t.due?`<span class="due ${r.cls}">${r.label}</span>`:''}
     </div>
     <div class="mc-prog">
       <div class="bar"><div class="fill" style="width:${prog.pct}%;background:${PCOLOR[t.priority]}"></div></div>
@@ -1688,7 +1699,7 @@ function renderUpcoming() {
   let html = '';
   if(overdue.length) {
     const exp = expandedUpcoming.has('__overdue__');
-    html += '<div class="day-group"><div class="day-head ' + (exp?'':'collapsed') + '" style="background:var(--p0-bg)" data-toggle-day="__overdue__"><div class="dnum" style="color:var(--p0)">' + (exp?'▾':'▸') + '</div><div class="dinfo" style="color:var(--p0)"><div>已逾期 · 需尽快处理</div><div class="dweek">' + overdue.length + ' 个步骤</div></div><span class="dcnt" style="background:var(--p0);color:#fff;border-color:var(--p0)">' + overdue.length + '</span></div><div class="day-body" ' + (exp?'':'hidden') + '>' + renderDayBodyByWs(overdue, wsMap) + '</div></div>';
+    html += '<div class="day-group"><div class="day-head over ' + (exp?'':'collapsed') + '" data-toggle-day="__overdue__"><div class="dnum">' + (exp?'▾':'▸') + '</div><div class="dinfo"><div>已逾期 · 需尽快处理</div><div class="dweek">' + overdue.length + ' 个步骤</div></div><span class="dcnt">' + overdue.length + '</span></div><div class="day-body" ' + (exp?'':'hidden') + '>' + renderDayBodyByWs(overdue, wsMap) + '</div></div>';
   }
   for(let i=0; i<=15; i++){
     const d = addDays(t, i);
