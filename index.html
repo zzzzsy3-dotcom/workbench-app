@@ -77,7 +77,7 @@
   .btn-ghost:hover { background: var(--line-2); }
 
   /* ===== 容器 ===== */
-  .wrap { max-width: 1240px; margin: 0 auto; padding: 16px 20px 40px; }
+  .wrap { max-width: none; margin: 0; padding: 16px 24px 76px; }
 
   /* ===== 备份提示条 ===== */
   .backup-tip {
@@ -98,10 +98,12 @@
     margin-bottom: 18px;
     box-shadow: var(--shadow);
   }
-  .today-head { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
-  .today-head h2 { font-size: 17px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
-  .today-head .date { color: var(--ink-3); font-size: 13px; font-weight: 500; }
-  .today-count { margin-left: auto; display: flex; gap: 6px; }
+  .today-head { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 16px; }
+  .th-left { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  .th-title { display: flex; align-items: center; gap: 8px; font-size: 19px; font-weight: 800; color: var(--ink); letter-spacing: -.2px; }
+  .th-title svg { width: 22px; height: 22px; color: var(--brand-d); flex-shrink: 0; }
+  .th-date { font-size: 12.5px; color: var(--ink-3); font-weight: 500; padding-left: 30px; }
+  .today-count { display: flex; gap: 8px; flex-shrink: 0; }
   .pill { font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 999px; }
   .pill-over { background: var(--p0-bg); color: var(--p0); }
   .pill-today { background: var(--p1-bg); color: #92400E; }
@@ -195,17 +197,17 @@
   .ws-tab.active { background: var(--brand-bg); border-color: transparent; color: var(--brand); font-weight: 600; box-shadow: inset 3px 0 0 var(--brand); }
   .ws-tab.active .cnt { background: var(--brand-bg); color: var(--brand); }
   .ws-tab.add { border-style: dashed; color: var(--ink-3); margin-top: 4px; }
-  .ws-head { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
-  .ws-head h3 { font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
-  .ws-head .domain { color: var(--ink-3); font-size: 13px; font-weight: 500; }
-  .ws-head .ws-progress { margin-left: auto; display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-2); font-weight: 600; }
+  .ws-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+  .ws-head-left { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  .ws-head-title { display: flex; align-items: center; gap: 8px; font-size: 17px; font-weight: 700; color: var(--ink); }
+  .ws-head-title .dot { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+  .ws-head-domain { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12.5px; color: var(--brand-d); font-weight: 600; padding-left: 20px; }
+  .ws-head .ws-progress { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-2); font-weight: 600; flex-shrink: 0; }
 
   /* 任务卡片网格 */
   .task-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; }
-  /* 网站面板：单列占满 + 子步骤 2 列 */
-  #pane-sites .task-grid { grid-template-columns: 1fr; gap: 14px; }
-  #pane-sites .task-card .steps { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 22px; }
-  #pane-sites .task-card .step-add { grid-column: 1 / -1; }
+  /* 网站面板：右侧 2 张卡片并排，子步骤回到单列 */
+  #pane-sites .task-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
   .task-card {
     background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 14px;
     box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 10px;
@@ -333,7 +335,7 @@
   .step-add label input { width: 13px; height: 13px; }
 
   /* ===== 优先级看板 ===== */
-  .board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .board { display: flex; flex-direction: column; gap: 16px; }
   .step { cursor: grab; }
   .step:active { cursor: grabbing; }
   .step-row { cursor: grab; }
@@ -349,23 +351,33 @@
   .mini-card.dragging { opacity: 0.3; transform: rotate(2deg) scale(0.96); transition: transform .1s; }
   .mini-card[draggable="true"] { cursor: grab; transition: transform .1s, opacity .1s; }
   .mini-card[draggable="true"]:active { cursor: grabbing; }
-  .board-col-head { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; padding: 0 4px; }
-  .board-col-head .dot { width: 10px; height: 10px; border-radius: 3px; }
-  .board-col-head h3 { font-size: 14px; font-weight: 700; }
-  .board-col-head .cnt { margin-left: auto; font-size: 12px; font-weight: 700; color: var(--ink-3); background: var(--line-2); padding: 2px 8px; border-radius: 999px; }
+  .board-col { background: #fff; border: 1px solid var(--line); border-top: 3px solid var(--brand); border-radius: 14px; padding: 16px; box-shadow: var(--shadow); }
+  .board-col-head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+  .board-col-head .pdot { width: 12px; height: 12px; border-radius: 4px; flex-shrink: 0; }
+  .board-col-head h3 { font-size: 16px; font-weight: 800; color: var(--ink); }
+  .board-col-head .cnt { font-size: 12px; font-weight: 700; color: var(--ink-3); background: var(--line-2); padding: 2px 9px; border-radius: 999px; }
+  .board-col-head .ring { margin-left: auto; flex-shrink: 0; }
   .board-list { display: flex; flex-direction: column; gap: 8px; }
+  .board-empty { text-align: center; color: var(--ink-3); font-size: 13px; padding: 18px 0; }
   .mini-card {
-    background: var(--line-2); border-radius: 9px; padding: 9px 11px; border-left: 3px solid;
-    cursor: pointer; transition: background .12s;
+    background: #fff; border: 1px solid var(--line); border-left: 4px solid var(--brand); border-radius: 10px; padding: 10px 12px;
+    cursor: pointer; display: flex; flex-direction: column; gap: 6px; transition: box-shadow .12s, border-color .12s;
   }
-  .mini-card:hover { background: #E8EEF5; }
-  .mini-card .mc-title { font-size: 13.5px; font-weight: 600; line-height: 1.35; word-break: break-word; }
-  .mini-card .mc-meta { font-size: 11.5px; color: var(--ink-3); margin-top: 4px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .mini-card:hover { box-shadow: var(--shadow); border-color: var(--line); }
+  .mini-card .mc-top { display: flex; align-items: flex-start; gap: 8px; }
+  .mini-card .mc-title { font-size: 14.5px; font-weight: 600; line-height: 1.35; word-break: break-word; flex: 1; }
+  .mini-card .mc-tag { font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 999px; background: var(--p1-bg); color: #92400E; white-space: nowrap; flex-shrink: 0; }
+  .mini-card .mc-meta { font-size: 12px; color: var(--ink-3); display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
   .mini-card .mc-meta .ws { color: var(--brand-d); font-weight: 600; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 11px; }
-  .mini-card .mc-prog { margin-top: 6px; display: flex; align-items: center; gap: 6px; }
-  .mini-card .mc-prog .bar { flex: 1; height: 4px; background: #fff; border-radius: 999px; overflow: hidden; }
+  .mini-card .due { font-weight: 600; }
+  .mini-card .due.over { color: var(--p0); }
+  .mini-card .due.today { color: #92400E; }
+  .mini-card .due.soon { color: var(--brand-d); }
+  .mini-card .mc-prog { display: flex; align-items: center; gap: 8px; }
+  .mini-card .mc-prog .bar { flex: 1; height: 5px; background: var(--line-2); border-radius: 999px; overflow: hidden; }
   .mini-card .mc-prog .fill { height: 100%; border-radius: 999px; }
   .mini-card .mc-prog .num { font-size: 11px; font-weight: 700; color: var(--ink-3); }
+  .mini-card.done { opacity: .6; }
   .mini-card.done .mc-title { text-decoration: line-through; color: var(--ink-3); }
 
   /* ===== 近期工作 ===== */
@@ -533,12 +545,13 @@
     .btn-primary .label, .btn-danger .label { display: inline; }
     .wrap { padding: 12px 12px 90px; }
     .today-box { padding: 14px 14px; border-radius: 12px; }
-    .today-head h2 { font-size: 15px; }
+    .th-title { font-size: 17px; }
     .maintabs { padding: 3px; }
     .maintab { height: 36px; font-size: 13px; }
     .maintab .label { display: none; }
     .maintab.active .label { display: inline; }
     .task-grid { grid-template-columns: 1fr; gap: 10px; }
+    #pane-sites .task-grid { grid-template-columns: 1fr; gap: 10px; }
     #pane-sites .task-card .steps { grid-template-columns: 1fr; gap: 4px; }
     .task-card { padding: 12px; border-radius: 12px; }
     .board { grid-template-columns: 1fr; gap: 10px; }
@@ -1215,11 +1228,13 @@ function renderToday() {
 
   let html = `
     <div class="today-head">
-      <h2>
-        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="var(--brand-d)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-        今天要处理
-      </h2>
-      <span class="date">${formatChineseDate(t)}</span>
+      <div class="th-left">
+        <div class="th-title">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+          今天要处理
+        </div>
+        <div class="th-date">${formatChineseDate(t)}</div>
+      </div>
       <span class="today-count">
         ${over?`<span class="pill pill-over">逾期 ${over}</span>`:''}
         ${todayN?`<span class="pill pill-today">今日 ${todayN}</span>`:''}
@@ -1258,7 +1273,7 @@ function renderToday() {
         const over = due && daysBetween(t, due) < 0;
         const expanded = expandedTasks.has(task.id);
         html += '<div class="today-task ' + (over?'over':'') + ' ' + (expanded?'expanded':'') + ' ' + ((allDone(task)||task.taskDone)?'done':'') + '" data-task="' + task.id + '">';
-        html += '<div class="tt-row" data-toggle-task="' + task.id + '"><span class="tt-expand">' + (expanded?'▼':'▶') + '</span><div class="pmark" style="background:' + PCOLOR[task.priority] + '"></div><span class="tt-title">' + escapeHtml(task.title) + '</span><span class="tt-meta"><span>' + prog.done + '/' + prog.total + '</span></span><span class="due ' + r.cls + '">' + r.label + '</span></div>';
+        html += '<div class="tt-row" data-toggle-task="' + task.id + '"><span class="tt-expand"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span><div class="pmark" style="background:' + PCOLOR[task.priority] + '"></div><span class="tt-title">' + escapeHtml(task.title) + '</span><span class="tt-meta"><span>' + prog.done + '/' + prog.total + '</span></span><span class="due ' + r.cls + '">' + r.label + '</span></div>';
         html += '<button class="icon-btn" data-edit-task="' + task.id + '" title="编辑"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg></button>';
         html += '<div class="tt-steps" ' + (expanded?'':'hidden') + '>';
         html += sortStepsForDisplay(task.steps).map(s => renderTodayStep(s, task.id)).join('') || '<div style="padding:8px;color:var(--ink-3);font-size:13px">无步骤</div>';
@@ -1330,9 +1345,9 @@ function renderWsHead() {
   const total = wsTasks.length;
   const pct = total ? Math.round(doneN/total*100) : 0;
   $('#wsHead').innerHTML = `
-    <div style="display:flex;flex-direction:column;gap:2px">
-      <h3><span class="dot" style="display:inline-block;width:12px;height:12px;border-radius:3px;background:${w.color}"></span>${escapeHtml(w.name)}</h3>
-      ${w.domain?`<span class="domain" style="font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px;color:var(--brand-d);font-weight:600;padding-left:20px">${escapeHtml(w.domain)}</span>`:''}
+    <div class="ws-head-left">
+      <div class="ws-head-title"><span class="dot" style="background:${w.color}"></span>${escapeHtml(w.name)}</div>
+      ${w.domain?`<div class="ws-head-domain">${escapeHtml(w.domain)}</div>`:''}
     </div>
     <span class="ws-progress">
       <svg viewBox="0 0 36 36" width="32" height="32">
@@ -1562,27 +1577,40 @@ function renderBoard() {
     if(pr[a.priority]!==pr[b.priority]) return pr[a.priority]-pr[b.priority];
     return (a.due||'9999').localeCompare(b.due||'9999');
   }));
-  $('#board').innerHTML = ['P0','P1','P2'].map(p => `
-    <div class="board-col" data-drop-priority="${p}">
+  const C = 2 * Math.PI * 15;
+  $('#board').innerHTML = ['P0','P1','P2'].map(p => {
+    const arr = cols[p];
+    const total = arr.length;
+    const doneN = arr.filter(allDone).length;
+    const pct = total ? Math.round(doneN/total*100) : 0;
+    const ring = `<svg class="ring" viewBox="0 0 36 36" width="34" height="34"><circle cx="18" cy="18" r="15" fill="none" stroke="var(--line-2)" stroke-width="4"/><circle cx="18" cy="18" r="15" fill="none" stroke="${PCOLOR[p]}" stroke-width="4" stroke-linecap="round" stroke-dasharray="${(pct/100*C).toFixed(1)},100" transform="rotate(-90 18 18)"/></svg>`;
+    return `<div class="board-col" data-drop-priority="${p}" style="border-top-color:${PCOLOR[p]}">
       <div class="board-col-head">
-        <span class="dot" style="background:${PCOLOR[p]}"></span>
+        <span class="pdot" style="background:${PCOLOR[p]}"></span>
         <h3>${p} ${PNAME[p]}</h3>
-        <span class="cnt">${cols[p].length}</span>
+        <span class="cnt">${total} 项</span>
+        ${ring}
       </div>
       <div class="board-list">
-        ${cols[p].length ? cols[p].map(t=>miniCard(t,wsMap)).join('') : '<div style="text-align:center;color:var(--ink-3);font-size:13px;padding:20px 0">暂无</div>'}
+        ${total ? arr.map(t=>miniCard(t,wsMap)).join('') : '<div class="board-empty">暂无任务</div>'}
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 function miniCard(t, wsMap){
   const ws = wsMap[t.websiteId];
   const prog = taskProgress(t);
   const r = relDue(t.due);
-  return `<div class="mini-card ${allDone(t)?'done':''}" style="border-color:${PCOLOR[t.priority]}" data-edit="${t.id}" draggable="true" data-drag-task="${t.id}">
-    <div class="mc-title">${escapeHtml(t.title)}</div>
+  const tag = r.cls==='over' ? '<span class="mc-tag" style="background:var(--p0-bg);color:var(--p0)">逾期</span>'
+            : r.cls==='today' ? '<span class="mc-tag">今天到期</span>' : '';
+  return `<div class="mini-card ${allDone(t)?'done':''}" style="border-left-color:${PCOLOR[t.priority]}" data-edit="${t.id}" draggable="true" data-drag-task="${t.id}">
+    <div class="mc-top">
+      <div class="mc-title">${escapeHtml(t.title)}</div>
+      ${tag}
+    </div>
     <div class="mc-meta">
       <span class="ws">${ws?escapeHtml(ws.domain||ws.name):'未分类'}</span>
-      ${t.due?`<span class="${r.cls}" style="font-weight:600;color:${r.cls==='over'?'var(--p0)':r.cls==='today'?'#92400E':'var(--brand-d)'}">${r.label}</span>`:''}
+      ${t.due?`<span class="due ${r.cls}">${r.label}</span>`:'<span>无截止</span>'}
     </div>
     <div class="mc-prog">
       <div class="bar"><div class="fill" style="width:${prog.pct}%;background:${PCOLOR[t.priority]}"></div></div>
