@@ -158,7 +158,7 @@
   /* ===== 网站工作区：左栏竖向导航 + 右栏内容 ===== */
   .ws-layout { display: flex; gap: 18px; align-items: flex-start; }
   .ws-side {
-    width: 212px; flex-shrink: 0; position: sticky; top: 56px;
+    width: 268px; flex-shrink: 0; position: sticky; top: 56px;
     max-height: calc(100vh - 78px); overflow-y: auto;
     background: #fafbfc; border: 1px solid var(--line); border-radius: 12px; padding: 12px 10px;
   }
@@ -176,7 +176,7 @@
   .ws-dropdown button.active { background: var(--brand-bg); color: var(--brand); font-weight: 600; }
   .ws-dropdown button .dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
   .ws-dropdown button .cnt { margin-left: auto; font-size: 11px; background: var(--line-2); color: var(--ink-3); padding: 1px 7px; border-radius: 999px; font-weight: 700; }
-  .ws-dropdown-toggle { display: none; }
+  .ws-tab.ws-dropdown-toggle { display: none; }
   @media (max-width: 768px) {
     .ws-layout { display: block; }
     .ws-side { width: auto; position: static; max-height: none; overflow: visible; background: none; border: none; border-radius: 0; padding: 0; margin-bottom: 14px; }
@@ -193,7 +193,8 @@
     flex-shrink: 0; cursor: pointer; text-align: left;
   }
   .ws-tab .dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
-  .ws-tab .cnt { font-size: 11px; background: var(--line-2); color: var(--ink-3); padding: 1px 7px; border-radius: 999px; font-weight: 700; margin-left: auto; }
+  .ws-tab .cnt { font-size: 11px; background: var(--line-2); color: var(--ink-3); padding: 1px 7px; border-radius: 999px; font-weight: 700; margin-left: auto; flex-shrink: 0; }
+  .ws-tab .ws-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
   .ws-tab.active { background: var(--brand-bg); border-color: transparent; color: var(--brand); font-weight: 600; box-shadow: inset 3px 0 0 var(--brand); }
   .ws-tab.active .cnt { background: var(--brand-bg); color: var(--brand); }
   .ws-tab.add { border-style: dashed; color: var(--ink-3); margin-top: 4px; }
@@ -363,11 +364,12 @@
   .board-col-head h3 { font-size: 16px; font-weight: 800; color: var(--ink); }
   .board-col-head .cnt { font-size: 12px; font-weight: 700; color: var(--ink-3); background: var(--line-2); padding: 2px 9px; border-radius: 999px; }
   .board-col-head .ring { margin-left: auto; flex-shrink: 0; }
-  .board-list { display: flex; flex-direction: column; gap: 8px; }
+  .board-list { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .board-empty { grid-column: 1 / -1; }
   .board-empty { text-align: center; color: var(--ink-3); font-size: 13px; padding: 18px 0; }
   .mini-card {
-    background: #fff; border: 1px solid var(--line); border-left: 4px solid var(--brand); border-radius: 10px; padding: 10px 12px;
-    cursor: pointer; display: flex; flex-direction: column; gap: 6px; transition: box-shadow .12s, border-color .12s;
+    background: #fff; border: 1px solid var(--line); border-left: 2px solid var(--brand); border-radius: 10px; padding: 12px 14px;
+    cursor: pointer; display: flex; flex-direction: column; gap: 7px; transition: box-shadow .12s, border-color .12s;
   }
   .mini-card:hover { box-shadow: var(--shadow); border-color: var(--line); }
   .mini-card .mc-top { display: flex; align-items: flex-start; gap: 8px; }
@@ -381,7 +383,7 @@
   .mini-card .due.soon { color: var(--brand-d); }
   .mini-card .mc-prog { display: flex; align-items: center; gap: 8px; }
   .mini-card .mc-prog .bar { flex: 1; height: 5px; background: var(--line-2); border-radius: 999px; overflow: hidden; }
-  .mini-card .mc-prog .fill { height: 100%; border-radius: 999px; }
+  .mini-card .mc-prog .fill { height: 100%; border-radius: 999px; opacity: .72; }
   .mini-card .mc-prog .num { font-size: 11px; font-weight: 700; color: var(--ink-3); }
   .mini-card.done { opacity: .6; }
   .mini-card.done .mc-title { text-decoration: line-through; color: var(--ink-3); }
@@ -571,6 +573,7 @@
     #pane-sites .task-card .steps { grid-template-columns: 1fr; gap: 4px; }
     .task-card { padding: 12px; border-radius: 12px; }
     .board { grid-template-columns: 1fr; gap: 10px; }
+    .board-list { grid-template-columns: 1fr; gap: 8px; }
     .field-row { grid-template-columns: 1fr; }
     .ws-tab { height: 36px; font-size: 13px; padding: 0 11px; }
     .modal { max-width: 100%; border-radius: 14px; align-self: center; max-height: 85vh; }
