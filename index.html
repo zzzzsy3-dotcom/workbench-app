@@ -1828,6 +1828,13 @@ function allDone(x){
   const p=taskProgress(x);
   return p.total>0 && p.done===p.total;
 }
+function isCompleted(x){ return x.taskDone || allDone(x); }
+// 完成时间状态转移：进入完成态记今天；离开完成态清空；保持完成态不动（保留最后一次进入完成的时间）
+function syncCompletedAt(t, prev){
+  const now = isCompleted(t);
+  if(now && !prev) t.completedAt = todayStr();
+  else if(!now && prev) t.completedAt = null;
+}
 function formatChineseDate(s){
   const d=parse(s); return (d.getMonth()+1)+'月'+d.getDate()+'日';
 }
@@ -2011,7 +2018,9 @@ function bindStepEvents(){
       if(!t) return;
       const s = t.steps.find(y=>y.id===sid);
       if(!s) return;
+      const prev = isCompleted(t);
       s.done = !s.done;
+      syncCompletedAt(t, prev);
       save(K_TASKS, tasks);
       // 局部更新这张卡片
       const card = el.closest('.task-card');
@@ -2218,9 +2227,10 @@ function bindTabs(){
       e.stopPropagation();
       const t = tasks.find(x => x.id === taskDone.dataset.taskDone);
       if(!t) return;
+      const prev = isCompleted(t);
       t.taskDone = !t.taskDone;
-      if(t.taskDone){ t.steps.forEach(s => s.done = true); t.completedAt = todayStr(); } // 标记完成时所有步骤也完成，并记录完成时间
-      else { t.completedAt = null; }
+      if(t.taskDone){ t.steps.forEach(s => s.done = true); } // 标记完成时所有步骤也完成
+      syncCompletedAt(t, prev);
       save(K_TASKS, tasks);
       renderAll();
       toast(t.taskDone ? '✓ 标记完成：'+t.title : '已恢复：'+t.title, 'ok');
@@ -2389,7 +2399,9 @@ function bindTabs(){
       if(!task) return;
       const step = task.steps.find(s => s.id === sid);
       if(!step) return;
+      const prev = isCompleted(task);
       step.done = !step.done;
+      syncCompletedAt(task, prev);
       save(K_TASKS, tasks);
       renderAll(); // 全视图同步（today/board/taskGrid 进度都更新）
       toast(step.done ? '✓ '+step.name : '已取消：'+step.name, 'ok');
@@ -2408,7 +2420,9 @@ function bindTabs(){
       if(!task) return;
       const step = task.steps.find(s => s.id === sid);
       if(!step) return;
+      const prev = isCompleted(task);
       step.done = !step.done;
+      syncCompletedAt(task, prev);
       save(K_TASKS, tasks);
       renderAll(); // 重渲染所有视图同步进度条 + 其他板块
       toast(step.done ? '✓ '+step.name : '已取消：'+step.name, 'ok');
@@ -2682,7 +2696,9 @@ function saveQuickHandle(){
   if(!t){ return; }
   const checks = {};
   $$('#quickSteps [data-qsid]').forEach(cb => { checks[cb.dataset.qsid] = cb.checked; });
+  const prev = isCompleted(t);
   t.steps.forEach(s => { if(checks[s.id] !== undefined) s.done = checks[s.id]; });
+  syncCompletedAt(t, prev);
   save(K_TASKS, tasks);
   $('#quickModal').classList.remove('show');
   renderAll();
