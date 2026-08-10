@@ -1835,6 +1835,12 @@ function syncCompletedAt(t, prev){
   if(now && !prev) t.completedAt = todayStr();
   else if(!now && prev) t.completedAt = null;
 }
+// 子步骤完成时间状态转移：与父任务同样规则——进入完成态记今天，离开清空，保持不动
+function syncStepDoneAt(s, prevDone){
+  const nowDone = !!s.done;
+  if(nowDone && !prevDone) s.doneAt = todayStr();
+  else if(!nowDone && prevDone) s.doneAt = null;
+}
 function formatChineseDate(s){
   const d=parse(s); return (d.getMonth()+1)+'月'+d.getDate()+'日';
 }
@@ -1890,7 +1896,21 @@ function renderDataBoard(){
     }).length;
     trend.push({ date:d, count:cnt });
   }
-  const maxTrend = Math.max(1, ...trend.map(z=>z.count));
+  // 子步骤完成趋势（只计子步骤，不含父任务）
+  const allTrend = [];
+  for(let i=6;i>=0;i--){
+    const d = addDays(t, -i);
+    let cnt = 0;
+    tasks.forEach(x=>{
+      x.steps.forEach(s=>{
+        if(s.done){
+          const sd = s.doneAt || (isCompleted(x) ? completionDate(x) : null);
+          if(sd === d) cnt++;
+        }
+      });
+    });
+    allTrend.push({ date:d, count:cnt });
+  }
 
   // 逾期预警（未完成且逾期，越久越靠前）
   const overdue = tasks.filter(x=>!isCompleted(x) && relDue(x.due).cls==='over')
@@ -1928,14 +1948,19 @@ function renderDataBoard(){
   // 趋势 SVG
   const W=680, H=210, base=170, top=34, avail=base-top, bw=34;
   const step = (W-80)/7;
-  const bars = trend.map((z,i)=>{
-    const x = 40 + i*step + (step-bw)/2;
-    const h = z.count/maxTrend*avail;
-    const y = base - h;
-    return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw}" height="${Math.max(0,h).toFixed(1)}" rx="3" fill="var(--brand)"/>`+
-           `<text x="${(x+bw/2).toFixed(1)}" y="${(y-6).toFixed(1)}" text-anchor="middle" font-size="11" fill="var(--ink-1)">${z.count}</text>`+
-           `<text x="${(x+bw/2).toFixed(1)}" y="188" text-anchor="middle" font-size="11" fill="var(--ink-3)">${formatShort(z.date)}</text>`;
-  }).join('');
+  const genBars = (tr)=>{
+    const mx = Math.max(1, ...tr.map(z=>z.count));
+    return tr.map((z,i)=>{
+      const x = 40 + i*step + (step-bw)/2;
+      const h = z.count/mx*avail;
+      const y = base - h;
+      return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw}" height="${Math.max(0,h).toFixed(1)}" rx="3" fill="var(--brand)"/>`+
+             `<text x="${(x+bw/2).toFixed(1)}" y="${(y-6).toFixed(1)}" text-anchor="middle" font-size="11" fill="var(--ink-1)">${z.count}</text>`+
+             `<text x="${(x+bw/2).toFixed(1)}" y="188" text-anchor="middle" font-size="11" fill="var(--ink-3)">${formatShort(z.date)}</text>`;
+    }).join('');
+  };
+  const bars = genBars(trend);
+  const allBars = genBars(allTrend);
 
   const listItem = (it)=>{
     const color = it.ws ? (it.ws.color||'#888') : '#888';
@@ -1975,10 +2000,17 @@ function renderDataBoard(){
       </div>
     </div>
     <div class="db-card">
-      <div class="db-card-h">近一周完成趋势 <span class="db-sub">近7天（滚动）· ${formatShort(addDays(t,-6))} → ${formatShort(t)}</span></div>
+      <div class="db-card-h">近一周完成趋势 <span class="db-sub">大任务 · 近7天（滚动）· ${formatShort(addDays(t,-6))} → ${formatShort(t)}</span></div>
       <svg viewBox="0 0 ${W} ${H}" class="db-trend" preserveAspectRatio="xMidYMid meet">
         <line x1="40" y1="${base}" x2="${W-20}" y2="${base}" stroke="var(--line-2)" stroke-width="0.5"/>
         ${bars}
+      </svg>
+    </div>
+    <div class="db-card">
+      <div class="db-card-h">近一周子步骤完成趋势 <span class="db-sub">只计子步骤 · 近7天（滚动）· ${formatShort(addDays(t,-6))} → ${formatShort(t)}</span></div>
+      <svg viewBox="0 0 ${W} ${H}" class="db-trend" preserveAspectRatio="xMidYMid meet">
+        <line x1="40" y1="${base}" x2="${W-20}" y2="${base}" stroke="var(--line-2)" stroke-width="0.5"/>
+        ${allBars}
       </svg>
     </div>
     <div class="db-grid2">
@@ -2019,7 +2051,9 @@ function bindStepEvents(){
       const s = t.steps.find(y=>y.id===sid);
       if(!s) return;
       const prev = isCompleted(t);
+      const prevStepDone = s.done;
       s.done = !s.done;
+      syncStepDoneAt(s, prevStepDone);
       syncCompletedAt(t, prev);
       save(K_TASKS, tasks);
       // 局部更新这张卡片
@@ -2031,7 +2065,7 @@ function bindStepEvents(){
       card.querySelector('.tc-progress .fill').style.background = allDone(x)?'var(--ok)':PCOLOR[x.priority];
       card.querySelector('.tc-progress .num').textContent = prog.done+'/'+prog.total;
       el.classList.toggle('done', s.done);
-      renderToday(); renderBoard(); renderUpcoming(); renderWsTabs(); renderWsHead();
+      renderToday(); renderBoard(); renderUpcoming(); renderWsTabs(); renderWsHead(); renderDataBoard();
     });
   });
   // 删除步骤
@@ -2058,7 +2092,7 @@ function bindStepEvents(){
       if(!v) return;
       const t = tasks.find(x=>x.id===tid);
       if(!t) return;
-      t.steps.push({ id:uid(), name:v, done:false, skippable:chk.checked });
+      t.steps.push({ id:uid(), name:v, done:false, doneAt:null, skippable:chk.checked });
       save(K_TASKS, tasks);
       renderAll();
       inp.value=''; chk.checked=false;
@@ -2214,7 +2248,7 @@ function bindTabs(){
     if(restore){
       const t = tasks.find(x => x.id === restore.dataset.restore);
       if(!t) return;
-      t.steps.forEach(s => s.done = false);
+      t.steps.forEach(s => { s.done = false; s.doneAt = null; });
       t.taskDone = false; t.completedAt = null;
       save(K_TASKS, tasks);
       renderAll();
@@ -2400,7 +2434,9 @@ function bindTabs(){
       const step = task.steps.find(s => s.id === sid);
       if(!step) return;
       const prev = isCompleted(task);
+      const prevStepDone = step.done;
       step.done = !step.done;
+      syncStepDoneAt(step, prevStepDone);
       syncCompletedAt(task, prev);
       save(K_TASKS, tasks);
       renderAll(); // 全视图同步（today/board/taskGrid 进度都更新）
@@ -2421,7 +2457,9 @@ function bindTabs(){
       const step = task.steps.find(s => s.id === sid);
       if(!step) return;
       const prev = isCompleted(task);
+      const prevStepDone = step.done;
       step.done = !step.done;
+      syncStepDoneAt(step, prevStepDone);
       syncCompletedAt(task, prev);
       save(K_TASKS, tasks);
       renderAll(); // 重渲染所有视图同步进度条 + 其他板块
@@ -2567,6 +2605,8 @@ function importTemplatesBatch(e){
           steps: Array.isArray(t.steps) ? t.steps.map(s => ({
             id: s.id || uid(),
             name: s.name || '步骤',
+            done: false,
+            doneAt: null,
             skippable: !!s.skippable
           })) : []
         };
@@ -2662,6 +2702,8 @@ function readFormSteps(){
     id: uid(),
     name: row.querySelector('.sr-name').value.trim(),
     due: row.querySelector('.sr-due').value || '',
+    done: false,
+    doneAt: null,
     skippable: row.querySelector('.sr-skip').checked
   })).filter(s => s.name);
 }
@@ -2697,7 +2739,13 @@ function saveQuickHandle(){
   const checks = {};
   $$('#quickSteps [data-qsid]').forEach(cb => { checks[cb.dataset.qsid] = cb.checked; });
   const prev = isCompleted(t);
-  t.steps.forEach(s => { if(checks[s.id] !== undefined) s.done = checks[s.id]; });
+  t.steps.forEach(s => {
+    if(checks[s.id] !== undefined){
+      const prevStepDone = s.done;
+      s.done = checks[s.id];
+      syncStepDoneAt(s, prevStepDone);
+    }
+  });
   syncCompletedAt(t, prev);
   save(K_TASKS, tasks);
   $('#quickModal').classList.remove('show');
@@ -2794,7 +2842,7 @@ $('#tplSaveBtn').addEventListener('click', () => {
     name,
     title: t.title,
     priority: t.priority,
-    steps: t.steps.map(s => ({ id:uid(), name:s.name, skippable:s.skippable }))
+    steps: t.steps.map(s => ({ id:uid(), name:s.name, done:false, doneAt:null, skippable:s.skippable }))
   };
   templates.push(tpl);
   save(K_TEMPLATES, templates);
@@ -2871,7 +2919,7 @@ function renderTplLib(){
   }));
 }
 $('#tplAddNew').addEventListener('click', () => {
-  const tp = { id:uid(), name:'新模板', title:'新工作', priority:'P2', steps:[{id:uid(),name:'步骤1',skippable:false}] };
+  const tp = { id:uid(), name:'新模板', title:'新工作', priority:'P2', steps:[{id:uid(),name:'步骤1',done:false,doneAt:null,skippable:false}] };
   templates.push(tp);
   save(K_TEMPLATES, templates);
   renderTplLib();
