@@ -593,6 +593,45 @@
   }
   .bottomnav button.active { color: var(--brand); }
   .bottomnav button svg { width: 22px; height: 22px; }
+
+  /* 数据台 */
+  .databoard { padding-bottom: 24px; }
+  .db-kpis { display:grid; grid-template-columns:repeat(5,1fr); gap:12px; margin-bottom:14px; }
+  .db-kpi { background:#fff; border:0.5px solid var(--line); border-radius:12px; padding:14px 16px; }
+  .db-kpi-label { font-size:12px; color:#6b7280; }
+  .db-kpi-val { font-size:26px; font-weight:600; margin-top:4px; color:#1f2937; }
+  .db-kpi-ok .db-kpi-val { color:var(--ok); }
+  .db-kpi-over .db-kpi-val { color:var(--p0); }
+  .db-grid2 { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px; }
+  .db-card { background:#fff; border:0.5px solid var(--line); border-radius:12px; padding:16px; margin-bottom:14px; }
+  .db-card-h { font-size:14px; font-weight:600; margin-bottom:14px; color:#1f2937; display:flex; align-items:baseline; gap:8px; }
+  .db-sub { font-size:12px; font-weight:400; color:#6b7280; }
+  .db-donut { display:flex; align-items:center; gap:20px; }
+  .db-donut-legend { font-size:13px; line-height:2.1; }
+  .db-leg { display:flex; align-items:center; }
+  .db-leg-dot { width:9px; height:9px; border-radius:2px; margin-right:8px; display:inline-block; }
+  .db-leg b { margin-left:6px; color:#1f2937; }
+  .db-bars { display:flex; flex-direction:column; gap:10px; }
+  .db-bar-row { display:flex; align-items:center; gap:10px; font-size:13px; }
+  .db-bar-name { width:120px; color:#6b7280; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .db-bar-track { flex:1; height:8px; background:var(--line-2); border-radius:4px; overflow:hidden; }
+  .db-bar-fill { display:block; height:100%; border-radius:4px; }
+  .db-bar-num { width:28px; text-align:right; color:#1f2937; }
+  .db-trend { width:100%; height:auto; display:block; }
+  .db-list { display:flex; flex-direction:column; }
+  .db-li { display:flex; align-items:center; gap:8px; padding:7px 0; border-bottom:0.5px solid var(--line-2); font-size:13px; }
+  .db-li:last-child { border-bottom:none; }
+  .db-dot { width:8px; height:8px; border-radius:50%; flex:none; }
+  .db-li-title { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#1f2937; }
+  .db-ws { color:#6b7280; font-size:12px; }
+  .db-over { color:var(--p0); font-size:12px; }
+  .db-rel { color:var(--brand); font-size:12px; }
+  .db-empty { color:#6b7280; font-size:13px; padding:8px 0; }
+  @media (max-width: 720px){
+    .db-kpis { grid-template-columns:repeat(2,1fr); }
+    .db-grid2 { grid-template-columns:1fr; }
+    .db-bar-name { width:90px; }
+  }
 </style>
 </head>
 <body>
@@ -675,6 +714,11 @@
     <div class="upcoming" id="upcoming"></div>
   </section>
 
+  <!-- 数据台 -->
+  <section class="pane" id="pane-data">
+    <div class="databoard" id="dataBoard"></div>
+  </section>
+
 </div>
 
 <!-- 移动端底部导航 -->
@@ -691,10 +735,14 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="18" rx="1"/><rect x="14" y="3" width="7" height="11" rx="1"/></svg>
     优先级
   </button>
-  <button data-pane="upcoming">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-    近期
-  </button>
+    <button data-pane="upcoming">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+      近期
+    </button>
+    <button data-pane="data">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>
+      数据
+    </button>
 </nav>
 
 <!-- 模态框：新建/编辑工作 -->
@@ -1564,6 +1612,7 @@ function batchCopyWebsite(wid) {
         id: uid(),
         websiteId: wid,
         createdAt: todayStr(),
+        completedAt: null,
         steps: x.steps.map(s => ({...s, id: uid()})) // 步骤 id 重置
       });
       c++;
@@ -1794,6 +1843,150 @@ function emptyState(icon, msg){
   return `<div class="empty-state">${icons[icon]||icons['工作']}<h4>暂无内容</h4><p>${msg}</p></div>`;
 }
 
+/* ---------- 渲染：数据台 ---------- */
+function renderDataBoard(){
+  const t = todayStr();
+  const wsMap = {}; websites.forEach(w=>wsMap[w.id]=w);
+  const isCompleted = x => x.taskDone || allDone(x);
+  // 完成时间：优先 completedAt；历史缺失则近似用 createdAt（仅当已完成），见任务标记逻辑
+  const completionDate = x => x.completedAt || (isCompleted(x) ? x.createdAt : null);
+
+  let total=0, doneCount=0, overCount=0, inProgress=0;
+  const byPriority = {P0:0,P1:0,P2:0};
+  const byWs = {};
+  tasks.forEach(x=>{
+    total++;
+    byPriority[x.priority] = (byPriority[x.priority]||0)+1;
+    const wsId = x.websiteId || '__none__';
+    byWs[wsId] = (byWs[wsId]||0)+1;
+    if(isCompleted(x)) doneCount++;
+    else {
+      const r = relDue(x.due);
+      if(r.cls==='over') overCount++; else inProgress++;
+    }
+  });
+  const weekDone = tasks.filter(x=>{
+    if(!isCompleted(x)) return false;
+    const cd = completionDate(x);
+    if(!cd) return false;
+    const n = daysBetween(cd, t);
+    return n>=0 && n<=6;
+  }).length;
+
+  // 近7天趋势（今天-6 .. 今天）
+  const trend = [];
+  for(let i=6;i>=0;i--){
+    const d = addDays(t, -i);
+    const cnt = tasks.filter(x=>{
+      if(!isCompleted(x)) return false;
+      return completionDate(x) === d;
+    }).length;
+    trend.push({ date:d, count:cnt });
+  }
+  const maxTrend = Math.max(1, ...trend.map(z=>z.count));
+
+  // 逾期预警（未完成且逾期，越久越靠前）
+  const overdue = tasks.filter(x=>!isCompleted(x) && relDue(x.due).cls==='over')
+    .sort((a,b)=> parse(a.due) - parse(b.due))
+    .map(x=>({ title:x.title, days:-daysBetween(t,x.due), ws: wsMap[x.websiteId] }));
+  // 近期到期（未完成、0~7 天内）
+  const upcoming = tasks.filter(x=>{
+    if(isCompleted(x) || !x.due) return false;
+    const n = daysBetween(t, x.due);
+    return n>=0 && n<=7;
+  }).sort((a,b)=> a.due.localeCompare(b.due))
+   .map(x=>({ title:x.title, rel: relDue(x.due).label, ws: wsMap[x.websiteId] }));
+
+  // 优先级环形
+  const seg = ['P0','P1','P2'].map(p=>({ val:byPriority[p], color:PCOLOR[p] }));
+  const donut = (segs)=>{
+    const tot = segs.reduce((s,x)=>s+x.val,0) || 1;
+    const C = 2*Math.PI*15;
+    let off = 0;
+    const parts = segs.map(s=>{
+      const len = tot ? s.val/tot*C : 0;
+      const el = `<circle cx="18" cy="18" r="15" fill="none" stroke="${s.color}" stroke-width="4" stroke-dasharray="${len.toFixed(1)},${(C-len).toFixed(1)}" stroke-dashoffset="${(-off).toFixed(1)}" transform="rotate(-90 18 18)"/>`;
+      off += len;
+      return el;
+    }).join('');
+    return `<svg viewBox="0 0 36 36" width="96" height="96"><circle cx="18" cy="18" r="15" fill="none" stroke="var(--line-2)" stroke-width="4"/>${parts}</svg>`;
+  };
+
+  // 按网站分布
+  const wsArr = Object.keys(byWs).map(id=>({ ws:wsMap[id], n:byWs[id] }))
+    .filter(x=>x.ws)
+    .sort((a,b)=>b.n-a.n);
+  const maxWs = Math.max(1, ...wsArr.map(x=>x.n));
+
+  // 趋势 SVG
+  const W=680, H=210, base=170, top=34, avail=base-top, bw=34;
+  const step = (W-80)/7;
+  const bars = trend.map((z,i)=>{
+    const x = 40 + i*step + (step-bw)/2;
+    const h = z.count/maxTrend*avail;
+    const y = base - h;
+    return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw}" height="${Math.max(0,h).toFixed(1)}" rx="3" fill="var(--brand)"/>`+
+           `<text x="${(x+bw/2).toFixed(1)}" y="${(y-6).toFixed(1)}" text-anchor="middle" font-size="11" fill="var(--ink-1)">${z.count}</text>`+
+           `<text x="${(x+bw/2).toFixed(1)}" y="188" text-anchor="middle" font-size="11" fill="var(--ink-3)">${formatShort(z.date)}</text>`;
+  }).join('');
+
+  const listItem = (it)=>{
+    const color = it.ws ? (it.ws.color||'#888') : '#888';
+    const name = it.ws ? (it.ws.domain||it.ws.name) : '未分类';
+    const tag = it.days!=null ? `<span class="db-over">+${it.days}天</span>` : `<span class="db-rel">${it.rel}</span>`;
+    return `<div class="db-li"><span class="db-dot" style="background:${color}"></span><span class="db-li-title">${escapeHtml(it.title)}</span><span class="db-ws">${escapeHtml(name)}</span>${tag}</div>`;
+  };
+  const cap = arr => arr.length ? arr.slice(0,8).map(listItem).join('') : '<div class="db-empty">暂无</div>';
+  const kpi = (label, val, tone)=>{
+    const cls = tone ? ' db-kpi-'+tone : '';
+    return `<div class="db-kpi${cls}"><div class="db-kpi-label">${label}</div><div class="db-kpi-val">${val}</div></div>`;
+  };
+
+  $('#dataBoard').innerHTML = `
+    <div class="db-kpis">
+      ${kpi('总任务', total)}
+      ${kpi('进行中', inProgress)}
+      ${kpi('本周完成', weekDone, 'ok')}
+      ${kpi('逾期', overCount, overCount?'over':'')}
+      ${kpi('待办', (total-doneCount))}
+    </div>
+    <div class="db-grid2">
+      <div class="db-card">
+        <div class="db-card-h">优先级分布</div>
+        <div class="db-donut">
+          ${donut(seg)}
+          <div class="db-donut-legend">
+            ${['P0','P1','P2'].map(p=>`<div class="db-leg"><span class="db-leg-dot" style="background:${PCOLOR[p]}"></span>${p} ${PNAME[p]} <b>${byPriority[p]}</b></div>`).join('')}
+          </div>
+        </div>
+      </div>
+      <div class="db-card">
+        <div class="db-card-h">按网站分布</div>
+        <div class="db-bars">
+          ${wsArr.length ? wsArr.map(x=>`<div class="db-bar-row"><span class="db-bar-name">${escapeHtml(x.ws.domain||x.ws.name)}</span><span class="db-bar-track"><span class="db-bar-fill" style="width:${(x.n/maxWs*100).toFixed(1)}%;background:${x.ws.color||'#3B82F6'}"></span></span><span class="db-bar-num">${x.n}</span></div>`).join('') : '<div class="db-empty">暂无网站</div>'}
+        </div>
+      </div>
+    </div>
+    <div class="db-card">
+      <div class="db-card-h">近一周完成趋势 <span class="db-sub">近7天（滚动）· ${formatShort(addDays(t,-6))} → ${formatShort(t)}</span></div>
+      <svg viewBox="0 0 ${W} ${H}" class="db-trend" preserveAspectRatio="xMidYMid meet">
+        <line x1="40" y1="${base}" x2="${W-20}" y2="${base}" stroke="var(--line-2)" stroke-width="0.5"/>
+        ${bars}
+      </svg>
+    </div>
+    <div class="db-grid2">
+      <div class="db-card">
+        <div class="db-card-h">逾期预警 <span class="db-sub">${overdue.length} 项</span></div>
+        <div class="db-list">${cap(overdue)}</div>
+      </div>
+      <div class="db-card">
+        <div class="db-card-h">近期到期 <span class="db-sub">${upcoming.length} 项</span></div>
+        <div class="db-list">${cap(upcoming)}</div>
+      </div>
+    </div>
+  `;
+}
+
 /* ---------- 渲染主入口 ---------- */
 function renderAll(){
   renderToday();
@@ -1802,6 +1995,7 @@ function renderAll(){
   renderTaskGrid();
   renderBoard();
   renderUpcoming();
+  renderDataBoard();
   renderBatchBar();
   checkBackupTip();
 }
@@ -2012,7 +2206,7 @@ function bindTabs(){
       const t = tasks.find(x => x.id === restore.dataset.restore);
       if(!t) return;
       t.steps.forEach(s => s.done = false);
-      t.taskDone = false;
+      t.taskDone = false; t.completedAt = null;
       save(K_TASKS, tasks);
       renderAll();
       toast('已恢复为未完成：'+t.title, 'ok');
@@ -2025,7 +2219,8 @@ function bindTabs(){
       const t = tasks.find(x => x.id === taskDone.dataset.taskDone);
       if(!t) return;
       t.taskDone = !t.taskDone;
-      if(t.taskDone) t.steps.forEach(s => s.done = true); // 标记完成时所有步骤也完成
+      if(t.taskDone){ t.steps.forEach(s => s.done = true); t.completedAt = todayStr(); } // 标记完成时所有步骤也完成，并记录完成时间
+      else { t.completedAt = null; }
       save(K_TASKS, tasks);
       renderAll();
       toast(t.taskDone ? '✓ 标记完成：'+t.title : '已恢复：'+t.title, 'ok');
@@ -2538,7 +2733,7 @@ function saveTask(){
     t.websiteId = websiteId; t.title=title; t.priority=priority; t.due=due; t.note=note; t.steps=newSteps;
     toast('已更新','ok');
   } else {
-    tasks.push({ id:uid(), websiteId, title, priority, due, steps, note, createdAt:todayStr() });
+    tasks.push({ id:uid(), websiteId, title, priority, due, steps, note, createdAt:todayStr(), completedAt:null });
     toast('已新建','ok');
   }
   save(K_TASKS, tasks);
