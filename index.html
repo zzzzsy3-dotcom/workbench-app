@@ -195,9 +195,12 @@
   .ws-dropdown button .ws-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
   @media (max-width: 768px) {
     .ws-layout { display: block; }
-    .ws-side { width: auto; position: relative; max-height: none; overflow: visible; background: none; border: none; border-radius: 0; padding: 0; margin-bottom: 14px; }
+    /* ws-side 在 mobile 是切换/操作容器，紧贴 wrap 顶部、与下方任务卡仅留 8px */
+    .ws-side { width: auto; position: relative; max-height: none; overflow: visible; background: none; border: none; border-radius: 0; padding: 0; margin: 0 0 8px; }
     .ws-side-title { display: none; }
-    .ws-tabs { gap: 8px; }
+    /* ws-tabs 不用 flex column（避免 stretch 把 wsActions 撑高），改成 block，子项 margin-top 8px 自然堆叠 */
+    .ws-tabs { display: block; }
+    .ws-tabs > * + * { margin-top: 8px; }
     .ws-list { display: none; }
     .ws-current {
       display: flex; align-items: center; gap: 8px; width: 100%; position: relative;
@@ -212,7 +215,8 @@
     .ws-current .ws-caret { flex-shrink: 0; color: var(--ink-3); transition: transform .15s; }
     .ws-current[aria-expanded="true"] .ws-caret { transform: rotate(180deg); }
     .ws-dropdown { top: calc(100% + 4px); }
-    .ws-actions { flex-basis: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+    /* wsActions：两个按钮永远并排，紧贴卡片下方，width 强制撑满容器 */
+    .ws-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; }
     .ws-actions .ws-tab { width: 100%; }
     .ws-actions .ws-tab.add { border-style: solid; border-color: var(--line); background: #fff; color: var(--ink-2); box-shadow: var(--shadow); margin-top: 0; }
   }
@@ -1440,17 +1444,15 @@ function renderWsTabs() {
       <div class="ws-dropdown" id="wsDropdown" hidden>${dd}</div>
     </div>`;
   }
-  // 新建网站 + 管理
+  // 新建网站 + 管理（管理按钮始终渲染，保证 wsActions 永远 2 个按钮并排；空隐藏时进 modal 会显示「没有隐藏的网站」友好提示）
   let actions = `<button class="ws-tab add" id="wsAdd">
     <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
     <span class="ws-tab-label">新建网站</span>
+  </button>
+  <button class="ws-tab add" id="wsManage" title="管理隐藏/归档的网站" style="color:var(--ink-3)">
+    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h18M3 12h18M3 17h18"/></svg>
+    管理
   </button>`;
-  if(websites.some(w => w.hidden)){
-    actions += `<button class="ws-tab add" id="wsManage" title="管理隐藏/归档的网站" style="color:var(--ink-3)">
-      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h18M3 12h18M3 17h18"/></svg>
-      管理
-    </button>`;
-  }
   $('#wsTabs').innerHTML = `${current}<div class="ws-list">${list}</div><div class="ws-actions">${actions}</div>`;
 }
 
