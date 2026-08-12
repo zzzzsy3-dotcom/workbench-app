@@ -179,12 +179,15 @@
   .ws-tab.ws-dropdown-toggle { display: none; }
   @media (max-width: 768px) {
     .ws-layout { display: block; }
-    .ws-side { width: auto; position: static; max-height: none; overflow: visible; background: none; border: none; border-radius: 0; padding: 0; margin-bottom: 14px; }
+    .ws-side { width: auto; position: relative; max-height: none; overflow: visible; background: none; border: none; border-radius: 0; padding: 0; margin-bottom: 14px; }
     .ws-side-title { display: none; }
-    .ws-tabs { flex-direction: row; gap: 8px; overflow-x: auto; padding-bottom: 4px; }
+    .ws-tabs { flex-direction: row; flex-wrap: wrap; gap: 8px; overflow-x: visible; padding-bottom: 0; }
     .ws-tab:not(.add):not(.ws-dropdown-toggle) { display: none; }
     .ws-tab.active { display: flex !important; }
     .ws-dropdown-toggle { display: flex; }
+    .ws-tab { width: auto; flex: 0 0 auto; }
+    .ws-actions { flex-basis: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 6px; }
+    .ws-actions .ws-tab { width: 100%; }
   }
   .ws-tab {
     display: flex; align-items: center; gap: 8px; width: 100%; height: 40px; padding: 0 12px;
@@ -198,6 +201,7 @@
   .ws-tab.active { background: var(--brand-bg); border-color: transparent; color: var(--brand); font-weight: 600; box-shadow: inset 3px 0 0 var(--brand); }
   .ws-tab.active .cnt { background: var(--brand-bg); color: var(--brand); }
   .ws-tab.add { border-style: dashed; color: var(--ink-3); margin-top: 4px; }
+  .ws-actions { display: flex; flex-direction: column; gap: 4px; }
   .ws-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
   .ws-head-left { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
   .ws-head-title { display: flex; align-items: center; gap: 8px; font-size: 17px; font-weight: 700; color: var(--ink); }
@@ -1384,23 +1388,24 @@ function renderWsTabs() {
       <span class="cnt">${n}</span>
     </button>`;
   }).join('');
-  html += `<button class="ws-tab add" id="wsAdd">
-    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
-    <span class="ws-tab-label">新建网站</span>
-  </button>`;
   // 移动端下拉箭头按钮（仅移动端可见）
   html += `<button class="ws-tab ws-dropdown-toggle" id="wsDropdownToggle" title="切换网站">
     <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
   </button>`;
   // 下拉容器（默认隐藏）
   html += '<div class="ws-dropdown" id="wsDropdown" hidden></div>';
-  // 如果有隐藏的网站，加"管理网站"按钮
+  // 新建网站 + 管理：桌面端随列表竖排，移动端在 .ws-actions 内并排（1fr 1fr）
+  let actions = `<button class="ws-tab add" id="wsAdd">
+    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+    <span class="ws-tab-label">新建网站</span>
+  </button>`;
   if(websites.some(w => w.hidden)){
-    html += `<button class="ws-tab add" id="wsManage" title="管理隐藏/归档的网站" style="color:var(--ink-3)">
+    actions += `<button class="ws-tab add" id="wsManage" title="管理隐藏/归档的网站" style="color:var(--ink-3)">
       <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h18M3 12h18M3 17h18"/></svg>
       管理
     </button>`;
   }
+  html += `<div class="ws-actions">${actions}</div>`;
   $('#wsTabs').innerHTML = html;
 }
 
@@ -2140,6 +2145,7 @@ function bindTabs(){
   // 手机长按网站 Tab → 编辑
   let longPressTimer = null;
   $('#wsTabs').addEventListener('touchstart', e => {
+    if(e.target.closest('#wsDropdown')) return; // 下拉项只用于切换，不触发长按编辑
     const tab = e.target.closest('[data-ws]');
     if(!tab) return;
     longPressTimer = setTimeout(() => {
