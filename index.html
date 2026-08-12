@@ -190,18 +190,31 @@
   .ws-tab.active .cnt { background: var(--brand-bg); color: var(--brand); }
   .ws-tab.add { border-style: dashed; color: var(--ink-3); margin-top: 4px; }
   .ws-actions { display: flex; flex-direction: column; gap: 4px; }
+  .ws-list { display: flex; flex-direction: column; gap: 4px; }
+  .ws-current { display: none; }
+  .ws-dropdown button .ws-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
   @media (max-width: 768px) {
     .ws-layout { display: block; }
     .ws-side { width: auto; position: relative; max-height: none; overflow: visible; background: none; border: none; border-radius: 0; padding: 0; margin-bottom: 14px; }
     .ws-side-title { display: none; }
-    .ws-tabs { flex-direction: row; flex-wrap: wrap; gap: 8px; overflow-x: visible; padding-bottom: 0; }
-    .ws-tab:not(.add):not(.ws-dropdown-toggle) { display: none; }
-    .ws-tab.active { display: flex !important; }
-    .ws-dropdown-toggle { display: flex; }
-    .ws-tab { width: auto; flex: 0 0 auto; }
-    .ws-actions { flex-basis: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 6px; }
+    .ws-tabs { gap: 8px; }
+    .ws-list { display: none; }
+    .ws-current {
+      display: flex; align-items: center; gap: 8px; width: 100%; position: relative;
+      padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px;
+      background: #fff; cursor: pointer; text-align: left; font: inherit; color: var(--ink);
+    }
+    .ws-current .dot { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+    .ws-current-info { display: flex; flex-direction: column; min-width: 0; gap: 1px; }
+    .ws-current-name { font-size: 15px; font-weight: 700; }
+    .ws-current-domain { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; color: var(--brand-d); font-weight: 600; }
+    .ws-current-progress { display: flex; align-items: center; gap: 6px; margin-left: auto; font-size: 12px; font-weight: 600; color: var(--ink-2); flex-shrink: 0; }
+    .ws-current .ws-caret { flex-shrink: 0; color: var(--ink-3); transition: transform .15s; }
+    .ws-current[aria-expanded="true"] .ws-caret { transform: rotate(180deg); }
+    .ws-dropdown { top: calc(100% + 4px); }
+    .ws-actions { flex-basis: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
     .ws-actions .ws-tab { width: 100%; }
-    .ws-tab.active { box-shadow: none; }
+    .ws-head { display: none; }
   }
   .ws-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
   .ws-head-left { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
@@ -1384,22 +1397,51 @@ function renderTodayStep(s, taskId){
 
 /* ---------- 渲染：网站工作区 ---------- */
 function renderWsTabs() {
-  let html = websites.filter(w => !w.hidden).map(w => {
+  const cur = websites.find(x=>x.id===activeWs);
+  // 桌面：站点列表 chips
+  const list = websites.filter(w => !w.hidden).map(w => {
     const n = tasks.filter(t=>t.websiteId===w.id && !allDone(t)).length;
-    // 主显示域名；名字放 tooltip
     const main = w.domain ? w.domain : w.name;
     return `<button class="ws-tab ${w.id===activeWs?'active':''}" data-ws="${w.id}" title="${escapeHtml(w.name)}${w.domain && w.domain!==w.name ? '\n'+escapeHtml(w.name) : ''}">
       <span class="dot" style="background:${w.color}"></span><span class="ws-name">${escapeHtml(main)}</span>
       <span class="cnt">${n}</span>
     </button>`;
   }).join('');
-  // 移动端下拉箭头按钮（仅移动端可见）
-  html += `<button class="ws-tab ws-dropdown-toggle" id="wsDropdownToggle" title="切换网站">
-    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
-  </button>`;
-  // 下拉容器（默认隐藏）
-  html += '<div class="ws-dropdown" id="wsDropdown" hidden></div>';
-  // 新建网站 + 管理：桌面端随列表竖排，移动端在 .ws-actions 内并排（1fr 1fr）
+  // 移动端：全宽「当前站点」卡片（合并站点信息 + 切换），含内嵌下拉
+  let current = '';
+  if(cur){
+    const wsTasks = tasks.filter(t=>t.websiteId===cur.id);
+    const doneN = wsTasks.filter(allDone).length;
+    const total = wsTasks.length;
+    const pct = total ? Math.round(doneN/total*100) : 0;
+    const dd = websites.filter(w=>!w.hidden).map(w=>{
+      const n = tasks.filter(t=>t.websiteId===w.id && !allDone(t)).length;
+      const main = w.domain ? w.domain : w.name;
+      return `<button data-ws="${w.id}" class="${w.id===activeWs?'active':''}">
+        <span class="dot" style="background:${w.color}"></span><span class="ws-name">${escapeHtml(main)}</span>
+        <span class="cnt">${n}</span>
+      </button>`;
+    }).join('');
+    current = `<div class="ws-current" id="wsCurrent" role="button" tabindex="0" aria-expanded="false">
+      <span class="dot" style="background:${cur.color}"></span>
+      <span class="ws-current-info">
+        <span class="ws-current-name">${escapeHtml(cur.name)}</span>
+        ${cur.domain?`<span class="ws-current-domain">${escapeHtml(cur.domain)}</span>`:''}
+      </span>
+      <span class="ws-current-progress">
+        <svg viewBox="0 0 36 36" width="30" height="30">
+          <circle cx="18" cy="18" r="15" fill="none" stroke="var(--line-2)" stroke-width="4"/>
+          <circle cx="18" cy="18" r="15" fill="none" stroke="${cur.color}" stroke-width="4" stroke-linecap="round"
+            stroke-dasharray="${2*Math.PI*15}" stroke-dashoffset="${2*Math.PI*15*(1-pct/100)}" transform="rotate(-90 18 18)"/>
+          <text x="18" y="22" text-anchor="middle" font-size="10" font-weight="700" fill="var(--ink)">${pct}</text>
+        </svg>
+        ${doneN}/${total} 完成
+      </span>
+      <svg class="ws-caret" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+      <div class="ws-dropdown" id="wsDropdown" hidden>${dd}</div>
+    </div>`;
+  }
+  // 新建网站 + 管理
   let actions = `<button class="ws-tab add" id="wsAdd">
     <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
     <span class="ws-tab-label">新建网站</span>
@@ -1410,27 +1452,12 @@ function renderWsTabs() {
       管理
     </button>`;
   }
-  html += `<div class="ws-actions">${actions}</div>`;
-  // 移动端把站点信息(#wsHead)移入 wsTabs 前需先摘出，避免被 innerHTML 重置销毁
-  const headEl = $('#wsHead');
-  if(headEl && headEl.parentElement === $('#wsTabs')) $('.ws-main').insertBefore(headEl, $('#taskGrid'));
-  $('#wsTabs').innerHTML = html;
-  placeWsHead();
+  $('#wsTabs').innerHTML = `${current}<div class="ws-list">${list}</div><div class="ws-actions">${actions}</div>`;
 }
 
 function placeWsHead(){
-  const head = $('#wsHead'); if(!head) return;
-  const tabs = $('#wsTabs'), main = $('.ws-main'), grid = $('#taskGrid');
-  if(!tabs || !main) return;
-  const mobile = window.matchMedia('(max-width: 768px)').matches;
-  if(mobile){
-    // 移动端：把站点信息移入站点侧栏，位于站点 chips 与「新建网站/管理」按钮之间
-    const acts = tabs.querySelector('.ws-actions');
-    if(acts) tabs.insertBefore(head, acts); else tabs.appendChild(head);
-  } else {
-    // 桌面端：回到 ws-main 顶部（原始位置，行为不变）
-    if(grid) main.insertBefore(head, grid); else main.appendChild(head);
-  }
+  // 移动端站点信息已合并进 .ws-current 卡片（#wsHead 由 CSS 在移动端隐藏）；
+  // 桌面端 #wsHead 始终位于 .ws-main 顶部（HTML 原始位置），无需移动。
 }
 
 function renderWsHead() {
@@ -2151,14 +2178,10 @@ function bindTabs(){
     $$('.bottomnav button').forEach(b=>b.classList.toggle('active', b.dataset.pane===p));
     $$('.pane').forEach(el=>el.classList.toggle('active', el.id==='pane-'+p));
   });
-  // 网站Tab切换
+  // 网站Tab切换（桌面：点 chips 直切；移动下拉项由 capture handler 处理）
   on($('#wsTabs'), 'click', e => {
     const tab = e.target.closest('[data-ws]');
-    if(tab){
-      // 手机端：点击「当前站点」整行 = 展开切换下拉（避免"看不到其他站/点不动"）
-      if(tab.classList.contains('active') && window.matchMedia('(max-width: 768px)').matches){
-        toggleWsDropdown(); return;
-      }
+    if(tab && !e.target.closest('#wsCurrent')){
       activeWs = tab.dataset.ws; save(K_ACTIVE_WS, activeWs); renderWsTabs(); renderWsHead(); renderTaskGrid(); setTimeout(scrollActiveWsTabIntoView, 50); return;
     }
     if(e.target.closest('#wsAdd')){ openWsModal(); }
@@ -2192,13 +2215,18 @@ function bindTabs(){
   // 网站管理入口
   on($('#wsTabs'), 'click', e => {
     if(e.target.closest('#wsManage')){ openWsManage(); return; }
-    const dropdownToggle = e.target.closest('#wsDropdownToggle');
-    if(dropdownToggle){ toggleWsDropdown(); return; }
     const dropdownItm = e.target.closest('#wsDropdown button[data-ws]');
     if(dropdownItm){
       activeWs = dropdownItm.dataset.ws; save(K_ACTIVE_WS, activeWs);
       renderWsTabs(); renderWsHead(); renderTaskGrid();
       $('#wsDropdown').hidden = true;
+      return;
+    }
+    if(e.target.closest('#wsCurrent')){
+      if(e.target.closest('#wsDropdown')) return;
+      const dd = $('#wsDropdown');
+      dd.hidden = !dd.hidden;
+      $('#wsCurrent').setAttribute('aria-expanded', String(!dd.hidden));
       return;
     }
   }, true); // capture 模式，先于其他 wsTabs click
