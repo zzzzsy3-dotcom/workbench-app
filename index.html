@@ -177,18 +177,6 @@
   .ws-dropdown button .dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
   .ws-dropdown button .cnt { margin-left: auto; font-size: 11px; background: var(--line-2); color: var(--ink-3); padding: 1px 7px; border-radius: 999px; font-weight: 700; }
   .ws-tab.ws-dropdown-toggle { display: none; }
-  @media (max-width: 768px) {
-    .ws-layout { display: block; }
-    .ws-side { width: auto; position: relative; max-height: none; overflow: visible; background: none; border: none; border-radius: 0; padding: 0; margin-bottom: 14px; }
-    .ws-side-title { display: none; }
-    .ws-tabs { flex-direction: row; flex-wrap: wrap; gap: 8px; overflow-x: visible; padding-bottom: 0; }
-    .ws-tab:not(.add):not(.ws-dropdown-toggle) { display: none; }
-    .ws-tab.active { display: flex !important; }
-    .ws-dropdown-toggle { display: flex; }
-    .ws-tab { width: auto; flex: 0 0 auto; }
-    .ws-actions { flex-basis: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 6px; }
-    .ws-actions .ws-tab { width: 100%; }
-  }
   .ws-tab {
     display: flex; align-items: center; gap: 8px; width: 100%; height: 40px; padding: 0 12px;
     border-radius: 10px; background: #fff; border: 1px solid var(--line);
@@ -202,6 +190,18 @@
   .ws-tab.active .cnt { background: var(--brand-bg); color: var(--brand); }
   .ws-tab.add { border-style: dashed; color: var(--ink-3); margin-top: 4px; }
   .ws-actions { display: flex; flex-direction: column; gap: 4px; }
+  @media (max-width: 768px) {
+    .ws-layout { display: block; }
+    .ws-side { width: auto; position: relative; max-height: none; overflow: visible; background: none; border: none; border-radius: 0; padding: 0; margin-bottom: 14px; }
+    .ws-side-title { display: none; }
+    .ws-tabs { flex-direction: row; flex-wrap: wrap; gap: 8px; overflow-x: visible; padding-bottom: 0; }
+    .ws-tab:not(.add):not(.ws-dropdown-toggle) { display: none; }
+    .ws-tab.active { display: flex !important; }
+    .ws-dropdown-toggle { display: flex; }
+    .ws-tab { width: auto; flex: 0 0 auto; }
+    .ws-actions { flex-basis: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 6px; }
+    .ws-actions .ws-tab { width: 100%; }
+  }
   .ws-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
   .ws-head-left { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
   .ws-head-title { display: flex; align-items: center; gap: 8px; font-size: 17px; font-weight: 700; color: var(--ink); }
@@ -2130,7 +2130,13 @@ function bindTabs(){
   // 网站Tab切换
   on($('#wsTabs'), 'click', e => {
     const tab = e.target.closest('[data-ws]');
-    if(tab){ activeWs = tab.dataset.ws; save(K_ACTIVE_WS, activeWs); renderWsTabs(); renderWsHead(); renderTaskGrid(); setTimeout(scrollActiveWsTabIntoView, 50); return; }
+    if(tab){
+      // 手机端：点击「当前站点」整行 = 展开切换下拉（避免"看不到其他站/点不动"）
+      if(tab.classList.contains('active') && window.matchMedia('(max-width: 768px)').matches){
+        toggleWsDropdown(); return;
+      }
+      activeWs = tab.dataset.ws; save(K_ACTIVE_WS, activeWs); renderWsTabs(); renderWsHead(); renderTaskGrid(); setTimeout(scrollActiveWsTabIntoView, 50); return;
+    }
     if(e.target.closest('#wsAdd')){ openWsModal(); }
   });
   // 双击/右键网站 Tab → 进入编辑弹窗
@@ -2196,6 +2202,12 @@ function bindTabs(){
     if(restore){
       const w = websites.find(x => x.id === restore.dataset.restoreWs);
       if(w){ w.hidden = false; save(K_WEBSITES, websites); openWsManage(); renderWsTabs(); toast('已恢复网站「'+w.name+'」','ok'); }
+      return;
+    }
+    const sw = e.target.closest('[data-switch-ws]');
+    if(sw){
+      const w = websites.find(x => x.id === sw.dataset.switchWs);
+      if(w){ activeWs = w.id; save(K_ACTIVE_WS, activeWs); $('#wsManageModal').classList.remove('show'); renderWsTabs(); renderWsHead(); renderTaskGrid(); toast('已切换到「'+w.name+'」','ok'); }
       return;
     }
     const hide = e.target.closest('[data-hide-ws]');
@@ -3056,7 +3068,8 @@ function openWsManage(){
     html += '<div style="font-size:13px;font-weight:600;color:var(--ink-2);margin:14px 0 8px">显示中（'+visible.length+'）</div>';
     visible.forEach(w => {
       const n = tasks.filter(t => t.websiteId === w.id).length;
-      html += '<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;margin-bottom:6px"><span class="dot" style="width:10px;height:10px;border-radius:3px;background:'+w.color+';flex-shrink:0"></span><div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:600">'+escapeHtml(w.domain||w.name)+'</div><div style="font-size:11px;color:var(--ink-3)">'+escapeHtml(w.name)+' · '+n+' 项任务</div></div><button class="bb-mini" data-hide-ws="'+w.id+'">隐藏</button></div>';
+      const isCur = w.id === activeWs;
+      html += '<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;margin-bottom:6px"><span class="dot" style="width:10px;height:10px;border-radius:3px;background:'+w.color+';flex-shrink:0"></span><div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:600">'+escapeHtml(w.domain||w.name)+(isCur?' <span style="font-size:11px;color:var(--brand)">· 当前</span>':'')+'</div><div style="font-size:11px;color:var(--ink-3)">'+escapeHtml(w.name)+' · '+n+' 项任务</div></div>'+(isCur?'':'<button class="bb-mini primary" data-switch-ws="'+w.id+'">切换</button>')+'<button class="bb-mini" data-hide-ws="'+w.id+'">隐藏</button></div>';
     });
   }
   body.innerHTML = html;
