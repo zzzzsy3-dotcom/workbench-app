@@ -214,6 +214,7 @@
     .ws-dropdown { top: calc(100% + 4px); }
     .ws-actions { flex-basis: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
     .ws-actions .ws-tab { width: 100%; }
+    .ws-actions .ws-tab.add { border-style: solid; border-color: var(--line); background: #fff; color: var(--ink-2); box-shadow: var(--shadow); margin-top: 0; }
   }
   .ws-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
   .ws-head-left { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
@@ -3348,13 +3349,8 @@ function initAutoSync(){
 
 /* ---------- 备份提示 ---------- */
 function checkBackupTip(){
-  const el = $('#backupTip');
-  if(tasks.length >= 30){
-    el.classList.add('show');
-    $('#backupTipText').textContent = `数据已积累 ${tasks.length} 项工作，建议导出备份以防丢失。`;
-  } else {
-    el.classList.remove('show');
-  }
+  // 用户已通过 GitHub 云端同步（手动导出 JSON 入库），不再弹本地备份提醒。顶部 ↓ 导出功能仍保留。
+  return;
 }
 $('#backupTipBtn').addEventListener('click', exportData);
 
