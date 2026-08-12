@@ -2186,7 +2186,7 @@ function bindTabs(){
     if(tab && !e.target.closest('#wsCurrent')){
       activeWs = tab.dataset.ws; save(K_ACTIVE_WS, activeWs); renderWsTabs(); renderWsHead(); renderTaskGrid(); setTimeout(scrollActiveWsTabIntoView, 50); return;
     }
-    if(e.target.closest('#wsAdd')){ openWsModal(); }
+    // 注：v10 后 #wsAdd / #wsManage 物理分离到 #wsActions，它们的 click 监听已迁到下面 wsActions handler
   });
   // 双击/右键网站 Tab → 进入编辑弹窗
   on($('#wsTabs'), 'contextmenu', e => {
@@ -2215,8 +2215,8 @@ function bindTabs(){
   // 隐藏网站
   on($('#wsHide'), 'click', confirmHideWs);
   // 网站管理入口
+  // 注：v10 后 #wsAdd / #wsManage 物理分离到 #wsActions，原 #wsManage 判断已迁到 wsActions handler
   on($('#wsTabs'), 'click', e => {
-    if(e.target.closest('#wsManage')){ openWsManage(); return; }
     const dropdownItm = e.target.closest('#wsDropdown button[data-ws]');
     if(dropdownItm){
       activeWs = dropdownItm.dataset.ws; save(K_ACTIVE_WS, activeWs);
@@ -2232,6 +2232,13 @@ function bindTabs(){
       return;
     }
   }, true); // capture 模式，先于其他 wsTabs click
+
+  // v11 修复：v10 把 ws-actions 物理分离到 #wsActions 节点，原 #wsTabs 监听器再也拿不到 #wsAdd / #wsManage 的 click，
+  // 导致桌面端"新建网站"和"管理"按钮视觉正常但点不动（移动端也是同样原因，之前的"看不到"一部分是这个 bug）。
+  on($('#wsActions'), 'click', e => {
+    if(e.target.closest('#wsAdd'))   { openWsModal();  return; }
+    if(e.target.closest('#wsManage')){ openWsManage(); return; }
+  });
 
   // 移动端 wsTabs 下拉
   function toggleWsDropdown(){
